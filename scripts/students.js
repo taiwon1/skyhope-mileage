@@ -1,18 +1,32 @@
 /**
- * students.js - 학생 명단 CRUD 및 수정 로직 최적화
+ * students.js
+ * 학생 명단 CRUD + 정보 수정 (학년·담임)
+ *
+ * [수정] 수정/삭제 버튼을 항상 렌더하되 CSS admin-only 클래스로 제어
+ *        → body.readonly 일 때 자동으로 숨김, 관리자 모드 전환 시 즉시 표시
  */
+
 import { db } from "./firebase.js";
 import {
-  collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot,
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 import { showAlert } from "./app.js";
 
+/** 전체 학생 목록 (실시간) — [{ name, grade, teacher }] */
 export let studentList = [];
+
 let filterTeacher = "";
 let filterGrade = "";
 
+// ── 학생 추가 ─────────────────────────────────────────────
 async function add() {
-  if (!window.authState?.isAdmin) {
+  if (!window.authState.isAdmin) {
     showAlert("student", "관리자 모드에서만 가능합니다", "error");
     return;
   }
@@ -20,8 +34,16 @@ async function add() {
   const grade = document.getElementById("in-grade").value;
   const teacher = document.getElementById("in-teacher").value;
 
-  if (!name || !grade || !teacher) {
-    showAlert("student", "모든 정보를 입력해주세요", "error");
+  if (!name) {
+    showAlert("student", "이름을 입력해주세요", "error");
+    return;
+  }
+  if (!grade) {
+    showAlert("student", "학년을 선택해주세요", "error");
+    return;
+  }
+  if (!teacher) {
+    showAlert("student", "담임선생님을 선택해주세요", "error");
     return;
   }
 
@@ -32,17 +54,23 @@ async function add() {
 
   try {
     await setDoc(doc(db, "students", name), {
-      name, grade, teacher, createdAt: Date.now(),
+      name,
+      grade,
+      teacher,
+      createdAt: Date.now(),
     });
     document.getElementById("in-student").value = "";
+    document.getElementById("in-grade").value = "";
+    document.getElementById("in-teacher").value = "";
     showAlert("student", `${name} 학생이 추가되었습니다!`, "success");
   } catch (e) {
     showAlert("student", "저장 실패: " + e.message, "error");
   }
 }
 
+// ── 학생 삭제 ─────────────────────────────────────────────
 async function remove(name) {
-  if (!window.authState?.isAdmin) return;
+  if (!window.authState.isAdmin) return;
   if (!confirm(`${name} 학생을 삭제할까요? 기록은 유지됩니다.`)) return;
   try {
     await deleteDoc(doc(db, "students", name));
@@ -51,12 +79,8 @@ async function remove(name) {
   }
 }
 
+// ── 학생 수정 모달 열기 ───────────────────────────────────
 function openEditModal(name) {
-  // 배포 환경에서 authState 체크가 늦을 수 있으므로 안전하게 처리
-  if (!window.authState?.isAdmin) {
-    alert("관리자 로그인이 필요합니다.");
-    return;
-  }
   const stu = studentList.find((s) => s.name === name);
   if (!stu) return;
 
@@ -64,13 +88,16 @@ function openEditModal(name) {
   document.getElementById("edit-modal-name").textContent = `👤 ${name}`;
   document.getElementById("edit-grade").value = stu.grade || "";
   document.getElementById("edit-teacher").value = stu.teacher || "";
+  document.getElementById("edit-error").style.display = "none";
   document.getElementById("edit-modal").classList.add("show");
 }
 
+// ── 수정 모달 닫기 ────────────────────────────────────────
 function closeEditModal() {
   document.getElementById("edit-modal").classList.remove("show");
 }
 
+// ── 수정 저장 ─────────────────────────────────────────────
 async function saveEdit() {
   const name = document.getElementById("edit-student-name").value;
   const grade = document.getElementById("edit-grade").value;
@@ -80,6 +107,7 @@ async function saveEdit() {
     document.getElementById("edit-error").style.display = "block";
     return;
   }
+  document.getElementById("edit-error").style.display = "none";
 
   try {
     await updateDoc(doc(db, "students", name), { grade, teacher });
@@ -89,12 +117,22 @@ async function saveEdit() {
   }
 }
 
+// ── 필터 ─────────────────────────────────────────────────
+function applyFilter() {
+  filterTeacher = document.getElementById("stu-filter-teacher").value;
+  filterGrade = document.getElementById("stu-filter-grade").value;
+  render();
+}
+
+// ── 학생 목록 렌더링 ──────────────────────────────────────
+// 수정/삭제 버튼은 항상 렌더, admin-only 클래스로 CSS가 제어
 function render() {
   const list = document.getElementById("student-list");
   const empty = document.getElementById("student-empty");
 
   let filtered = studentList;
-  if (filterTeacher) filtered = filtered.filter((s) => s.teacher === filterTeacher);
+  if (filterTeacher)
+    filtered = filtered.filter((s) => s.teacher === filterTeacher);
   if (filterGrade) filtered = filtered.filter((s) => s.grade === filterGrade);
 
   if (!filtered.length) {
@@ -104,6 +142,7 @@ function render() {
   }
   empty.style.display = "none";
 
+  // 담임별 그룹
   const grouped = {};
   filtered.forEach((s) => {
     const key = s.teacher || "미지정";
@@ -111,46 +150,86 @@ function render() {
     grouped[key].push(s);
   });
 
-  list.innerHTML = Object.entries(grouped).map(([teacher, students]) => `
+  list.innerHTML = Object.entries(grouped)
+    .map(
+      ([teacher, students]) => `
     <div style="margin-bottom:24px">
-      <div style="font-size:12px; font-weight:800; color:var(--gray); margin-bottom:10px">
+      <div style="font-size:12px;font-weight:800;color:var(--gray);
+                  text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
         ${teacher} · ${students.length}명
       </div>
-      <div style="display:flex; flex-wrap:wrap; gap:10px">
-        ${students.map((s) => `
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        ${students
+          .map(
+            (s) => `
           <div class="student-chip">
             <div class="student-chip-info">
               <span class="student-chip-name">👤 ${s.name}</span>
               <span class="student-chip-meta">${s.grade || "학년 미지정"}</span>
             </div>
-            ${window.authState?.isAdmin ? `
-              <button class="btn btn-sm" style="background:var(--purple-bg);color:var(--purple);"
-                onclick="window.students.openEditModal('${s.name}')">수정</button>
-              <button class="btn btn-danger btn-sm"
-                onclick="window.students.remove('${s.name}')">삭제</button>
-            ` : ""}
+            <button class="btn btn-edit btn-sm admin-only"
+              onclick="window.students.openEditModal('${s.name}')">✏️ 수정</button>
+            <button class="btn btn-danger btn-sm admin-only"
+              onclick="window.students.remove('${s.name}')">삭제</button>
           </div>
-        `).join("")}
+        `,
+          )
+          .join("")}
       </div>
     </div>
-  `).join("");
+  `,
+    )
+    .join("");
 }
 
+// ── 이름 드롭다운 업데이트 ───────────────────────────────
+export function updateNameSelect() {
+  // 단일 입력 드롭다운
+  const sel = document.getElementById("in-name");
+  if (sel) {
+    sel.innerHTML =
+      '<option value="">-- 학생 선택 --</option>' +
+      studentList
+        .map((s) => `<option value="${s.name}">${s.name}</option>`)
+        .join("");
+  }
+  // 기록 필터 이름 드롭다운
+  const recSel = document.getElementById("rec-filter-name");
+  if (recSel) {
+    recSel.innerHTML =
+      '<option value="">전체</option>' +
+      studentList
+        .map((s) => `<option value="${s.name}">${s.name}</option>`)
+        .join("");
+  }
+  // 입력폼 학생 체크박스 재렌더 (현재 필터 유지)
+  if (window.records && window.records.refreshCheckboxes) {
+    window.records.refreshCheckboxes();
+  }
+}
+
+/** 이름으로 학생 정보 조회 */
+export function getStudent(name) {
+  return studentList.find((s) => s.name === name) || {};
+}
+
+// ── Firestore 실시간 리스너 ───────────────────────────────
 export function startListener() {
   onSnapshot(collection(db, "students"), (snap) => {
-    studentList = snap.docs.map((d) => d.data()).sort((a, b) => a.name.localeCompare(b.name, "ko"));
+    studentList = snap.docs
+      .map((d) => d.data())
+      .sort((a, b) => a.name.localeCompare(b.name, "ko"));
     render();
-    const sel = document.getElementById("in-name");
-    if (sel) {
-      sel.innerHTML = '<option value="">-- 학생 선택 --</option>' + 
-        studentList.map(s => `<option value="${s.name}">${s.name}</option>`).join("");
-    }
+    updateNameSelect();
   });
 }
 
-// 전역 노출 (배포 환경 안전성 확보)
-window.students = { add, remove, openEditModal, closeEditModal, saveEdit, applyFilter: () => {
-  filterTeacher = document.getElementById("stu-filter-teacher").value;
-  filterGrade = document.getElementById("stu-filter-grade").value;
-  render();
-}};
+// 전역 노출
+window.students = {
+  add,
+  remove,
+  applyFilter,
+  openEditModal,
+  closeEditModal,
+  saveEdit,
+};

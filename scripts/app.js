@@ -13,8 +13,12 @@ import { startListener as startStudents } from "./students.js";
 
 // ── 탭 전환 ───────────────────────────────────────────────
 function showTab(id, el) {
-  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document
+    .querySelectorAll(".section")
+    .forEach((s) => s.classList.remove("active"));
+  document
+    .querySelectorAll(".tab")
+    .forEach((t) => t.classList.remove("active"));
   document.getElementById("tab-" + id).classList.add("active");
   el.classList.add("active");
 
@@ -26,20 +30,23 @@ function showTab(id, el) {
 // ── 공통 알림 헬퍼 ───────────────────────────────────────
 export function showAlert(id, msg, type) {
   const el = document.getElementById("alert-" + id);
-  el.textContent  = msg;
-  el.className    = `alert alert-${type} show`;
+  el.textContent = msg;
+  el.className = `alert alert-${type} show`;
   setTimeout(() => el.classList.remove("show"), 3000);
 }
 
 // ── 초기화 ────────────────────────────────────────────────
 function init() {
   // 오늘 날짜 기본값
-  document.getElementById("in-date").value = new Date().toISOString().split("T")[0];
+  document.getElementById("in-date").value = new Date()
+    .toISOString()
+    .split("T")[0];
 
   // 이번 달 기본값
-  const now       = new Date();
-  const thisMonth = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
-  document.getElementById("sel-month").value  = thisMonth;
+  const now = new Date();
+  const thisMonth =
+    now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+  document.getElementById("sel-month").value = thisMonth;
   document.getElementById("rank-month").value = thisMonth;
 
   // Firestore 실시간 리스너 시작

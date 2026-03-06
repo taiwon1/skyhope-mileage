@@ -6,7 +6,7 @@
 import { recordList } from "./records.js";
 
 const MEDAL_CLASS = ["top1", "top2", "top3"];
-const MEDAL_ICON  = ["🥇", "🥈", "🥉"];
+const MEDAL_ICON = ["🥇", "🥈", "🥉"];
 
 // ── 이번 달로 설정 ────────────────────────────────────────
 function setThisMonth() {
@@ -18,14 +18,16 @@ function setThisMonth() {
 
 // ── 랭킹 렌더링 ───────────────────────────────────────────
 function render() {
-  const month    = document.getElementById("rank-month").value;
+  const month = document.getElementById("rank-month").value;
   const filtered = month
-    ? recordList.filter(r => r.date.startsWith(month))
+    ? recordList.filter((r) => r.date.startsWith(month))
     : recordList;
 
   // 학생별 합산
   const totals = {};
-  filtered.forEach(r => { totals[r.name] = (totals[r.name] || 0) + r.pts; });
+  filtered.forEach((r) => {
+    totals[r.name] = (totals[r.name] || 0) + r.pts;
+  });
   const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
 
   const list = document.getElementById("ranking-list");
@@ -39,7 +41,9 @@ function render() {
     return;
   }
 
-  list.innerHTML = sorted.map(([name, pts], i) => `
+  list.innerHTML = sorted
+    .map(
+      ([name, pts], i) => `
     <div class="rank-item">
       <div class="rank-num ${MEDAL_CLASS[i] || ""}">
         ${i < 3 ? MEDAL_ICON[i] : i + 1}
@@ -47,7 +51,9 @@ function render() {
       <div class="rank-name">${name}</div>
       <div class="rank-pts">${pts.toLocaleString()}P</div>
     </div>
-  `).join("");
+  `,
+    )
+    .join("");
 }
 
 // 전역 노출

@@ -22,7 +22,7 @@ function toggleCumulative() {
   showCumulative = !showCumulative;
   const btn = document.getElementById("cum-btn");
   btn.textContent = showCumulative ? "📉 누적합계 숨기기" : "📈 누적합계 보기";
-  btn.className   = showCumulative
+  btn.className = showCumulative
     ? "btn btn-sm btn-primary"
     : "btn btn-sm btn-gold";
   render();
@@ -30,19 +30,19 @@ function toggleCumulative() {
 
 // ── 메인 렌더 ─────────────────────────────────────────────
 function render() {
-  const month    = document.getElementById("sel-month").value;
+  const month = document.getElementById("sel-month").value;
   const fTeacher = document.getElementById("sum-filter-teacher").value;
-  const fGrade   = document.getElementById("sum-filter-grade").value;
-  const sortKey  = document.getElementById("sum-sort").value;
+  const fGrade = document.getElementById("sum-filter-grade").value;
+  const sortKey = document.getElementById("sum-sort").value;
 
   // 이번 달 기록
   const monthRecs = month
-    ? recordList.filter(r => r.date.startsWith(month))
+    ? recordList.filter((r) => r.date.startsWith(month))
     : recordList;
 
   // 직전 누적 기록 (선택 월 이전 전체)
   const prevRecs = month
-    ? recordList.filter(r => r.date < month + "-01")
+    ? recordList.filter((r) => r.date < month + "-01")
     : [];
 
   renderStatCards(monthRecs);
@@ -52,14 +52,15 @@ function render() {
 
 // ── 헤더 컬럼 표시 제어 ───────────────────────────────────
 function renderHeader() {
-  document.querySelectorAll(".cum-col")
-    .forEach(el => { el.style.display = showCumulative ? "" : "none"; });
+  document.querySelectorAll(".cum-col").forEach((el) => {
+    el.style.display = showCumulative ? "" : "none";
+  });
 }
 
 // ── 통계 카드 ─────────────────────────────────────────────
 function renderStatCards(filtered) {
-  const totalPts       = filtered.reduce((s, r) => s + r.pts, 0);
-  const activeStudents = new Set(filtered.map(r => r.name)).size;
+  const totalPts = filtered.reduce((s, r) => s + r.pts, 0);
+  const activeStudents = new Set(filtered.map((r) => r.name)).size;
 
   document.getElementById("stat-grid").innerHTML = `
     <div class="stat-card">
@@ -82,7 +83,7 @@ function renderTable(monthRecs, prevRecs, fTeacher, fGrade, sortKey) {
   const empty = document.getElementById("summary-empty");
   tbody.innerHTML = "";
 
-  const map     = buildMap(monthRecs);
+  const map = buildMap(monthRecs);
   const prevMap = buildPrevTotals(prevRecs);
 
   // 학생 정보 병합
@@ -90,49 +91,58 @@ function renderTable(monthRecs, prevRecs, fTeacher, fGrade, sortKey) {
     const info = getStudent(name);
     return {
       name,
-      grade:     info.grade   || "-",
-      teacher:   info.teacher || "-",
+      grade: info.grade || "-",
+      teacher: info.teacher || "-",
       ...d,
       prevTotal: prevMap[name] || 0,
-      cumTotal:  (prevMap[name] || 0) + d.total,
+      cumTotal: (prevMap[name] || 0) + d.total,
     };
   });
 
   // 담임 · 학년 필터
-  if (fTeacher) rows = rows.filter(r => r.teacher === fTeacher);
-  if (fGrade)   rows = rows.filter(r => r.grade   === fGrade);
+  if (fTeacher) rows = rows.filter((r) => r.teacher === fTeacher);
+  if (fGrade) rows = rows.filter((r) => r.grade === fGrade);
 
-  if (!rows.length) { empty.style.display = "block"; return; }
+  if (!rows.length) {
+    empty.style.display = "block";
+    return;
+  }
   empty.style.display = "none";
 
   // 정렬
   rows.sort((a, b) => {
     switch (sortKey) {
-      case "total-desc": return b.total    - a.total;
-      case "total-asc":  return a.total    - b.total;
-      case "cum-desc":   return b.cumTotal - a.cumTotal;
-      case "name-asc":   return a.name.localeCompare(b.name, "ko");
-      default:           return 0;
+      case "total-desc":
+        return b.total - a.total;
+      case "total-asc":
+        return a.total - b.total;
+      case "cum-desc":
+        return b.cumTotal - a.cumTotal;
+      case "name-asc":
+        return a.name.localeCompare(b.name, "ko");
+      default:
+        return 0;
     }
   });
 
   // ── 포맷 헬퍼 ────────────────────────────────────────────
   // inline style 대신 CSS 클래스 사용 → 색깔 깨짐 방지
-  const fmtPts = v => v
-    ? `<span class="pts-val">${v}P</span>`
-    : `<span class="pts-empty">-</span>`;
+  const fmtPts = (v) =>
+    v
+      ? `<span class="pts-val">${v}P</span>`
+      : `<span class="pts-empty">-</span>`;
 
-  const fmtPrev = v => v
-    ? `<span class="pts-prev">${v.toLocaleString()}P</span>`
-    : `<span class="pts-empty">-</span>`;
+  const fmtPrev = (v) =>
+    v
+      ? `<span class="pts-prev">${v.toLocaleString()}P</span>`
+      : `<span class="pts-empty">-</span>`;
 
-  const fmtCum = v =>
+  const fmtCum = (v) =>
     `<strong class="pts-cum">${v.toLocaleString()}P</strong>`;
 
-  const fmtTotal = v =>
-    `<strong class="pts-total">${v}P</strong>`;
+  const fmtTotal = (v) => `<strong class="pts-total">${v}P</strong>`;
 
-  rows.forEach(d => {
+  rows.forEach((d) => {
     tbody.innerHTML += `
       <tr>
         <td><strong>${d.name}</strong></td>
@@ -159,18 +169,42 @@ function renderTable(monthRecs, prevRecs, fTeacher, fGrade, sortKey) {
 // ── 이번달 집계 맵 ────────────────────────────────────────
 function buildMap(recs) {
   const map = {};
-  recs.forEach(r => {
+  recs.forEach((r) => {
     if (!map[r.name])
-      map[r.name] = { attend:0, early:0, fri:0, choir:0, guide:0, prayer:0, friend:0, etc:0, total:0 };
+      map[r.name] = {
+        attend: 0,
+        early: 0,
+        fri: 0,
+        choir: 0,
+        guide: 0,
+        prayer: 0,
+        friend: 0,
+        etc: 0,
+        total: 0,
+      };
     const m = map[r.name];
     switch (r.activity) {
-      case "주일예배 출석":        m.attend += 100; if (r.earlybird) m.early += 50; break;
-      case "금요기도회 참석":      m.fri    += r.pts; break;
-      case "주일예배 찬양팀 섬김": m.choir  += r.pts; break;
-      case "주일예배 안내팀 섬김": m.guide  += r.pts; break;
-      case "대표기도":             m.prayer += r.pts; break;
-      case "새친구 전도":          m.friend += r.pts; break;
-      default:                     m.etc    += r.pts;
+      case "주일예배 출석":
+        m.attend += 100;
+        if (r.earlybird) m.early += 50;
+        break;
+      case "금요기도회 참석":
+        m.fri += r.pts;
+        break;
+      case "주일예배 찬양팀 섬김":
+        m.choir += r.pts;
+        break;
+      case "주일예배 안내팀 섬김":
+        m.guide += r.pts;
+        break;
+      case "대표기도":
+        m.prayer += r.pts;
+        break;
+      case "새친구 전도":
+        m.friend += r.pts;
+        break;
+      default:
+        m.etc += r.pts;
     }
     m.total += r.pts;
   });
@@ -180,7 +214,9 @@ function buildMap(recs) {
 // ── 직전 누적 합계 맵 ────────────────────────────────────
 function buildPrevTotals(prevRecs) {
   const map = {};
-  prevRecs.forEach(r => { map[r.name] = (map[r.name] || 0) + r.pts; });
+  prevRecs.forEach((r) => {
+    map[r.name] = (map[r.name] || 0) + r.pts;
+  });
   return map;
 }
 

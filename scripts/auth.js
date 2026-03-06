@@ -1,25 +1,29 @@
 /**
  * auth.js
- * 관리자 인증 관리
+ * 인증 관리 — 관리자 / 선생님 / 읽기전용 3단계 권한
  *
- * - 비밀번호는 SHA-256 해시값으로만 저장 (평문 없음)
- * - 로그인 시 입력값을 해싱한 뒤 저장된 해시와 비교
- * - isAdmin 상태를 전역(window.authState)으로 공유
+ * 권한별 기능:
+ *   관리자  (isAdmin=true)  : 모든 기능 (학생 추가·수정·삭제, 마일리지 등록·삭제)
+ *   선생님  (isTeacher=true): 마일리지 등록만 가능 (학생 관리 불가)
+ *   읽기전용               : 조회만 가능
  *
- * 비밀번호 변경 방법:
- *   브라우저 콘솔에서 아래 실행 후 나온 해시값을 ADMIN_HASH에 붙여넣기
- *   > const b = new TextEncoder().encode('새비밀번호');
- *   > const h = await crypto.subtle.digest('SHA-256', b);
- *   > console.log([...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''));
+ * 비밀번호 변경 방법 (콘솔에서 실행):
+ *   const b = new TextEncoder().encode('새비밀번호');
+ *   const h = await crypto.subtle.digest('SHA-256', b);
+ *   console.log([...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''));
  */
 
-/** 전역 인증 상태 */
-window.authState = window.authState || { isAdmin: false };
-
+// sky2026 → 관리자
 const ADMIN_HASH =
   "f4036a14c2845da3850ac6bc265ce3e01c1298398d367c1c8a356472651cd29e";
+// tc2026  → 선생님
+const TEACHER_HASH =
+  "15bcefb5ecd24a4ded47db2e40ce12754c8226dda56939200d4fbaaf4575dec1";
 
-/** 문자열을 SHA-256 해시 (hex 문자열) 로 변환 */
+/** 전역 인증 상태 */
+window.authState = { isAdmin: false, isTeacher: false };
+
+/** SHA-256 변환 */
 async function sha256(text) {
   const bytes = new TextEncoder().encode(text);
   const buffer = await crypto.subtle.digest("SHA-256", bytes);
@@ -28,29 +32,44 @@ async function sha256(text) {
     .join("");
 }
 
-/** UI 업데이트 헬퍼 */
-function applyAdminUI(isAdmin) {
+/** body 클래스 & 배지 업데이트 */
+function applyUI() {
+  const { isAdmin, isTeacher } = window.authState;
   const btn = document.getElementById("mode-btn");
+
+  // body 클래스: readonly / teacher-mode / admin-mode
+  document.body.classList.remove("readonly", "teacher-mode", "admin-mode");
+
   if (isAdmin) {
-    document.body.classList.remove("readonly");
+    document.body.classList.add("admin-mode");
     btn.textContent = "🔑 관리자 모드";
     btn.className = "mode-badge mode-admin";
+  } else if (isTeacher) {
+    document.body.classList.add("teacher-mode");
+    btn.textContent = "📋 선생님 모드";
+    btn.className = "mode-badge mode-teacher";
   } else {
     document.body.classList.add("readonly");
     btn.textContent = "👁 읽기 전용";
     btn.className = "mode-badge mode-readonly";
   }
+
+  // 권한 변경 시 현재 탭 재렌더 (삭제 버튼 표시/숨김 즉시 반영)
+  if (window.records && window.records.applyFilter) {
+    window.records.applyFilter();
+  }
 }
 
-/** 관리자 모드 토글 (헤더 배지 클릭) */
+/** 헤더 배지 클릭 → 로그아웃 or 모달 열기 */
 async function toggleMode() {
-  if (window.authState.isAdmin) {
-    // 로그아웃
+  if (window.authState.isAdmin || window.authState.isTeacher) {
     window.authState.isAdmin = false;
-    applyAdminUI(false);
+    window.authState.isTeacher = false;
+    applyUI();
   } else {
-    // 로그인 모달 열기
     document.getElementById("login-modal").classList.add("show");
+    document.getElementById("admin-pw-input").value = "";
+    document.getElementById("login-error").style.display = "none";
     document.getElementById("admin-pw-input").focus();
   }
 }
@@ -62,7 +81,13 @@ async function tryLogin() {
 
   if (hash === ADMIN_HASH) {
     window.authState.isAdmin = true;
-    applyAdminUI(true);
+    window.authState.isTeacher = false;
+    applyUI();
+    closeModal();
+  } else if (hash === TEACHER_HASH) {
+    window.authState.isAdmin = false;
+    window.authState.isTeacher = true;
+    applyUI();
     closeModal();
   } else {
     document.getElementById("login-error").style.display = "block";
@@ -78,5 +103,4 @@ function closeModal() {
   document.getElementById("login-error").style.display = "none";
 }
 
-// 전역 노출 (HTML onclick에서 호출)
 window.auth = { toggleMode, tryLogin, closeModal };
