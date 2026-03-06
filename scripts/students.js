@@ -20,7 +20,7 @@ import {
   writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-import { showAlert } from "./app.js";
+import { showAlert } from "./utils.js";
 
 /** 전체 학생 목록 (실시간) — [{ name, grade, teacher }] */
 export let studentList = [];

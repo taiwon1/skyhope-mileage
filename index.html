@@ -3,8 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>하늘소망고등부 마일리지 — SkyHope</title>
-    <link rel="stylesheet" href="styles/main.css?v=20260307" />
+    <title>고등부 마일리지 — SkyHope</title>
+    <link rel="stylesheet" href="styles/main.css?v=20260310" />
+    <!-- authState 전역 초기화 — 모든 모듈보다 먼저 실행 -->
+    <script>
+      window.authState = { isAdmin: false, isTeacher: false };
+    </script>
   </head>
   <body class="readonly">
     <div id="loading-overlay">
@@ -96,7 +100,7 @@
     <header>
       <div class="header-inner">
         <div>
-          <h1>⛪ 하늘소망고등부 마일리지</h1>
+          <h1>⛪ 고등부 마일리지</h1>
           <p><span class="sync-dot"></span>Firebase 실시간 연동</p>
         </div>
         <button
@@ -565,12 +569,13 @@
       </div>
     </main>
 
-    <script type="module" src="scripts/firebase.js?v=20260307"></script>
-    <script type="module" src="scripts/auth.js?v=20260307"></script>
-    <script type="module" src="scripts/students.js?v=20260307"></script>
-    <script type="module" src="scripts/records.js?v=20260307"></script>
-    <script type="module" src="scripts/summary.js?v=20260307"></script>
-    <script type="module" src="scripts/ranking.js?v=20260307"></script>
-    <script type="module" src="scripts/app.js?v=20260307"></script>
+    <script type="module" src="scripts/firebase.js?v=20260310"></script>
+    <script type="module" src="scripts/utils.js?v=20260310"></script>
+    <script type="module" src="scripts/auth.js?v=20260310"></script>
+    <script type="module" src="scripts/students.js?v=20260310"></script>
+    <script type="module" src="scripts/records.js?v=20260310"></script>
+    <script type="module" src="scripts/summary.js?v=20260310"></script>
+    <script type="module" src="scripts/ranking.js?v=20260310"></script>
+    <script type="module" src="scripts/app.js?v=20260310"></script>
   </body>
 </html>

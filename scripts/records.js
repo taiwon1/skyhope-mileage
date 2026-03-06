@@ -15,7 +15,7 @@ import {
   orderBy,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-import { showAlert } from "./app.js";
+import { showAlert } from "./utils.js";
 import { studentList } from "./students.js";
 
 const POINTS = {
@@ -107,7 +107,7 @@ function toggleAll(checked) {
 
 // ── 기록 추가 (단일 or 다중) ─────────────────────────────
 async function add() {
-  if (!window.authState.isAdmin && !window.authState.isTeacher) {
+  if (!window.authState?.isAdmin && !window.authState?.isTeacher) {
     showAlert("record", "관리자 모드에서만 가능합니다", "error");
     return;
   }
@@ -197,7 +197,7 @@ async function add() {
 // ══════════════════════════════════════════════════════════
 
 async function remove(id) {
-  if (!window.authState.isAdmin) return;
+  if (!window.authState?.isAdmin) return;
   if (!confirm("이 기록을 삭제할까요?")) return;
   try {
     await deleteDoc(doc(db, "records", id));
@@ -307,7 +307,7 @@ function renderTable(pageData) {
     const stu = studentList.find((s) => s.name === r.name) || {};
     const meta = [stu.grade, stu.teacher].filter(Boolean).join(" · ");
 
-    const delBtn = window.authState.isAdmin
+    const delBtn = window.authState?.isAdmin
       ? `<td><button class="btn btn-danger btn-sm" onclick="window.records.remove('${r._id}')">삭제</button></td>`
       : "";
 
@@ -429,6 +429,12 @@ function refreshCheckboxes() {
   renderStudentCheckboxes(teacher, grade);
 }
 
+// ── 권한 변경 시 1페이지로 리셋 후 재렌더 (auth.js에서 호출) ──
+function resetToPage1() {
+  currentPage = 1;
+  render();
+}
+
 // 전역 노출
 window.records = {
   add,
@@ -441,4 +447,5 @@ window.records = {
   onInputClassChange,
   toggleAll,
   refreshCheckboxes,
+  resetToPage1,
 };

@@ -54,10 +54,12 @@ function applyUI() {
     btn.className = "mode-badge mode-readonly";
   }
 
-  // 권한 변경 시 현재 탭 재렌더 (삭제 버튼 표시/숨김 즉시 반영)
-  if (window.records && window.records.applyFilter) {
-    window.records.applyFilter();
-  }
+  // 권한 변경 시 기록 목록 재렌더 (삭제 버튼 즉시 반영, 페이지 1로 리셋)
+  setTimeout(() => {
+    if (window.records && window.records.resetToPage1) {
+      window.records.resetToPage1();
+    }
+  }, 0);
 }
 
 /** 헤더 배지 클릭 → 로그아웃 or 모달 열기 */
