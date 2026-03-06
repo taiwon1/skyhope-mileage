@@ -254,7 +254,7 @@ function render() {
   let list = recordList.filter((r) => {
     if (fMonth && !r.date.startsWith(fMonth)) return false;
     if (nameSet && !nameSet.has(r.name)) return false;
-    if (fName && r.name !== fName) return false;
+    if (fName && !r.name.includes(fName)) return false;
     if (fActivity && r.activity !== fActivity) return false;
     return true;
   });

@@ -33,6 +33,7 @@ function render() {
   const month = document.getElementById("sel-month").value;
   const fTeacher = document.getElementById("sum-filter-teacher").value;
   const fGrade = document.getElementById("sum-filter-grade").value;
+  const fName = document.getElementById("sum-filter-name")?.value.trim() || "";
   const sortKey = document.getElementById("sum-sort").value;
 
   // 이번 달 기록
@@ -47,7 +48,7 @@ function render() {
 
   renderStatCards(monthRecs);
   renderHeader();
-  renderTable(monthRecs, prevRecs, fTeacher, fGrade, sortKey);
+  renderTable(monthRecs, prevRecs, fTeacher, fGrade, fName, sortKey);
 }
 
 // ── 헤더 컬럼 표시 제어 ───────────────────────────────────
@@ -78,7 +79,7 @@ function renderStatCards(filtered) {
 }
 
 // ── 정산 테이블 ───────────────────────────────────────────
-function renderTable(monthRecs, prevRecs, fTeacher, fGrade, sortKey) {
+function renderTable(monthRecs, prevRecs, fTeacher, fGrade, fName, sortKey) {
   const tbody = document.getElementById("summary-tbody");
   const empty = document.getElementById("summary-empty");
   tbody.innerHTML = "";
@@ -99,9 +100,10 @@ function renderTable(monthRecs, prevRecs, fTeacher, fGrade, sortKey) {
     };
   });
 
-  // 담임 · 학년 필터
+  // 담임 · 학년 · 이름 필터
   if (fTeacher) rows = rows.filter((r) => r.teacher === fTeacher);
   if (fGrade) rows = rows.filter((r) => r.grade === fGrade);
+  if (fName) rows = rows.filter((r) => r.name.includes(fName));
 
   if (!rows.length) {
     empty.style.display = "block";
