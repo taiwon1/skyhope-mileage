@@ -460,3 +460,145 @@ body.readonly .admin-only { display: none !important; }
   main          { padding: 16px 12px 60px; }
   .tab          { padding: 12px 12px; font-size: 12px; }
 }
+
+/* ══════════════════════════════════════════
+   필터 바
+══════════════════════════════════════════ */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  padding: 16px;
+  background: var(--purple-bg);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 130px;
+}
+.filter-group label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--purple);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.filter-group input,
+.filter-group select {
+  padding: 8px 12px;
+  font-size: 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+}
+
+/* ══════════════════════════════════════════
+   기록 건수 표시
+══════════════════════════════════════════ */
+.rec-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray);
+  margin-right: auto;
+}
+
+/* ══════════════════════════════════════════
+   페이지네이션
+══════════════════════════════════════════ */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dark);
+  cursor: pointer;
+  transition: all .15s;
+}
+.page-btn:hover:not(:disabled) {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+.page-btn.active {
+  background: var(--purple);
+  border-color: var(--purple);
+  color: white;
+}
+.page-btn:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+.page-ellipsis {
+  font-size: 13px;
+  color: var(--gray);
+  padding: 0 4px;
+}
+
+/* ══════════════════════════════════════════
+   학생 칩 (학생 관리)
+══════════════════════════════════════════ */
+.student-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 14px;
+  transition: border-color .2s;
+}
+.student-chip:hover { border-color: var(--purple); }
+.student-chip-info  { display: flex; flex-direction: column; gap: 2px; }
+.student-chip-name  { font-weight: 700; font-size: 13px; color: var(--purple); }
+.student-chip-meta  { font-size: 10px; color: var(--gray); }
+
+/* ══════════════════════════════════════════
+   누적 컬럼
+══════════════════════════════════════════ */
+.cum-col { background: #F9FBE7; }
+
+/* ══════════════════════════════════════════
+   정산 테이블 포인트 셀 (inline style 대신 클래스로)
+══════════════════════════════════════════ */
+.pts-val   { color: var(--purple); font-weight: 700; }
+.pts-empty { color: #CCC; }
+.pts-prev  { color: #888; font-size: 12px; }
+.pts-cum   { color: #2E7D32; font-size: 14px; }
+.pts-total { color: var(--purple); font-size: 15px; }
+.td-teacher { font-size: 11px; color: var(--gray); }
+
+/* ══════════════════════════════════════════
+   누적 컬럼 배경
+══════════════════════════════════════════ */
+td.cum-col  { background: #F9FBE7; }
+th.cum-col  { background: #7BA428 !important; }
+
+/* ══════════════════════════════════════════
+   학생 수정 모달
+══════════════════════════════════════════ */
+#edit-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 26, 46, .7);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 8000;
+}
+#edit-modal.show { display: flex; }

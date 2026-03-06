@@ -1,18 +1,15 @@
 /**
  * summary.js
- * 월별 마일리지 정산 테이블 + Chart.js 막대 그래프
+ * 월별 마일리지 정산 — 필터 · 정렬 · 누적합계
+ * (차트 제거 / 누적합계 색깔 버그 수정)
  */
 
 import { recordList } from "./records.js";
+import { studentList, getStudent } from "./students.js";
 
-const CHART_PALETTE = [
-  "#6B4FA0", "#9B7FD0", "#E8A020", "#388E3C", "#1565C0",
-  "#C62828", "#00838F", "#6A1B9A", "#558B2F", "#E65100",
-];
+let showCumulative = false;
 
-let chartInstance = null;
-
-// ── 이번 달로 설정 ────────────────────────────────────────
+// ── 이번 달 설정 ──────────────────────────────────────────
 function setThisMonth() {
   const now = new Date();
   document.getElementById("sel-month").value =
@@ -20,19 +17,46 @@ function setThisMonth() {
   render();
 }
 
-// ── 정산 렌더링 ───────────────────────────────────────────
+// ── 누적합계 토글 ─────────────────────────────────────────
+function toggleCumulative() {
+  showCumulative = !showCumulative;
+  const btn = document.getElementById("cum-btn");
+  btn.textContent = showCumulative ? "📉 누적합계 숨기기" : "📈 누적합계 보기";
+  btn.className   = showCumulative
+    ? "btn btn-sm btn-primary"
+    : "btn btn-sm btn-gold";
+  render();
+}
+
+// ── 메인 렌더 ─────────────────────────────────────────────
 function render() {
   const month    = document.getElementById("sel-month").value;
-  const filtered = month
+  const fTeacher = document.getElementById("sum-filter-teacher").value;
+  const fGrade   = document.getElementById("sum-filter-grade").value;
+  const sortKey  = document.getElementById("sum-sort").value;
+
+  // 이번 달 기록
+  const monthRecs = month
     ? recordList.filter(r => r.date.startsWith(month))
     : recordList;
 
-  renderStatCards(filtered);
-  renderTable(filtered);
-  renderChart(filtered);
+  // 직전 누적 기록 (선택 월 이전 전체)
+  const prevRecs = month
+    ? recordList.filter(r => r.date < month + "-01")
+    : [];
+
+  renderStatCards(monthRecs);
+  renderHeader();
+  renderTable(monthRecs, prevRecs, fTeacher, fGrade, sortKey);
 }
 
-// ── 상단 통계 카드 ────────────────────────────────────────
+// ── 헤더 컬럼 표시 제어 ───────────────────────────────────
+function renderHeader() {
+  document.querySelectorAll(".cum-col")
+    .forEach(el => { el.style.display = showCumulative ? "" : "none"; });
+}
+
+// ── 통계 카드 ─────────────────────────────────────────────
 function renderStatCards(filtered) {
   const totalPts       = filtered.reduce((s, r) => s + r.pts, 0);
   const activeStudents = new Set(filtered.map(r => r.name)).size;
@@ -52,25 +76,93 @@ function renderStatCards(filtered) {
     </div>`;
 }
 
-// ── 학생별 정산 테이블 ────────────────────────────────────
-function renderTable(filtered) {
+// ── 정산 테이블 ───────────────────────────────────────────
+function renderTable(monthRecs, prevRecs, fTeacher, fGrade, sortKey) {
   const tbody = document.getElementById("summary-tbody");
   const empty = document.getElementById("summary-empty");
   tbody.innerHTML = "";
 
-  if (!filtered.length) {
-    empty.style.display = "block";
-    return;
-  }
+  const map     = buildMap(monthRecs);
+  const prevMap = buildPrevTotals(prevRecs);
+
+  // 학생 정보 병합
+  let rows = Object.entries(map).map(([name, d]) => {
+    const info = getStudent(name);
+    return {
+      name,
+      grade:     info.grade   || "-",
+      teacher:   info.teacher || "-",
+      ...d,
+      prevTotal: prevMap[name] || 0,
+      cumTotal:  (prevMap[name] || 0) + d.total,
+    };
+  });
+
+  // 담임 · 학년 필터
+  if (fTeacher) rows = rows.filter(r => r.teacher === fTeacher);
+  if (fGrade)   rows = rows.filter(r => r.grade   === fGrade);
+
+  if (!rows.length) { empty.style.display = "block"; return; }
   empty.style.display = "none";
 
-  // 학생별 집계
-  const map = {};
-  filtered.forEach(r => {
-    if (!map[r.name])
-      map[r.name] = { attend: 0, early: 0, fri: 0, choir: 0, guide: 0, prayer: 0, friend: 0, etc: 0, total: 0 };
-    const m = map[r.name];
+  // 정렬
+  rows.sort((a, b) => {
+    switch (sortKey) {
+      case "total-desc": return b.total    - a.total;
+      case "total-asc":  return a.total    - b.total;
+      case "cum-desc":   return b.cumTotal - a.cumTotal;
+      case "name-asc":   return a.name.localeCompare(b.name, "ko");
+      default:           return 0;
+    }
+  });
 
+  // ── 포맷 헬퍼 ────────────────────────────────────────────
+  // inline style 대신 CSS 클래스 사용 → 색깔 깨짐 방지
+  const fmtPts = v => v
+    ? `<span class="pts-val">${v}P</span>`
+    : `<span class="pts-empty">-</span>`;
+
+  const fmtPrev = v => v
+    ? `<span class="pts-prev">${v.toLocaleString()}P</span>`
+    : `<span class="pts-empty">-</span>`;
+
+  const fmtCum = v =>
+    `<strong class="pts-cum">${v.toLocaleString()}P</strong>`;
+
+  const fmtTotal = v =>
+    `<strong class="pts-total">${v}P</strong>`;
+
+  rows.forEach(d => {
+    tbody.innerHTML += `
+      <tr>
+        <td><strong>${d.name}</strong></td>
+        <td><span class="badge badge-blue" style="font-size:10px">${d.grade}</span></td>
+        <td class="td-teacher">${d.teacher}</td>
+        <td>${fmtPts(d.attend)}</td>
+        <td>${fmtPts(d.early)}</td>
+        <td>${fmtPts(d.fri)}</td>
+        <td>${fmtPts(d.choir)}</td>
+        <td>${fmtPts(d.guide)}</td>
+        <td>${fmtPts(d.prayer)}</td>
+        <td>${fmtPts(d.friend)}</td>
+        <td>${fmtPts(d.etc)}</td>
+        <td class="cum-col">${fmtPrev(d.prevTotal)}</td>
+        <td>${fmtTotal(d.total)}</td>
+        <td class="cum-col">${fmtCum(d.cumTotal)}</td>
+      </tr>`;
+  });
+
+  // 헤더 표시 상태 재적용 (tbody 교체 후 DOM 변경 없으므로 thead는 유지됨)
+  renderHeader();
+}
+
+// ── 이번달 집계 맵 ────────────────────────────────────────
+function buildMap(recs) {
+  const map = {};
+  recs.forEach(r => {
+    if (!map[r.name])
+      map[r.name] = { attend:0, early:0, fri:0, choir:0, guide:0, prayer:0, friend:0, etc:0, total:0 };
+    const m = map[r.name];
     switch (r.activity) {
       case "주일예배 출석":        m.attend += 100; if (r.earlybird) m.early += 50; break;
       case "금요기도회 참석":      m.fri    += r.pts; break;
@@ -82,89 +174,15 @@ function renderTable(filtered) {
     }
     m.total += r.pts;
   });
-
-  const fmt = v => v
-    ? `<span style="color:var(--purple); font-weight:700">${v}P</span>`
-    : `<span style="color:#CCC">-</span>`;
-
-  Object.entries(map)
-    .sort((a, b) => b[1].total - a[1].total)
-    .forEach(([name, d]) => {
-      tbody.innerHTML += `
-        <tr>
-          <td><strong>${name}</strong></td>
-          <td>${fmt(d.attend)}</td>
-          <td>${fmt(d.early)}</td>
-          <td>${fmt(d.fri)}</td>
-          <td>${fmt(d.choir)}</td>
-          <td>${fmt(d.guide)}</td>
-          <td>${fmt(d.prayer)}</td>
-          <td>${fmt(d.friend)}</td>
-          <td>${fmt(d.etc)}</td>
-          <td><strong style="color:var(--purple); font-size:15px">${d.total}P</strong></td>
-        </tr>`;
-    });
+  return map;
 }
 
-// ── 막대 그래프 ───────────────────────────────────────────
-function renderChart(filtered) {
-  const chartCard = document.getElementById("chart-card");
-
-  if (!filtered.length) {
-    chartCard.style.display = "none";
-    return;
-  }
-
-  // 학생별 합계 집계
-  const totals = {};
-  filtered.forEach(r => { totals[r.name] = (totals[r.name] || 0) + r.pts; });
-  const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
-
-  const labels = sorted.map(([name]) => name);
-  const data   = sorted.map(([, pts]) => pts);
-  const colors = labels.map((_, i) => CHART_PALETTE[i % CHART_PALETTE.length]);
-
-  chartCard.style.display = "block";
-
-  if (chartInstance) chartInstance.destroy();
-  chartInstance = new Chart(document.getElementById("summary-chart"), {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        label: "마일리지 (P)",
-        data,
-        backgroundColor: colors,
-        borderRadius: 8,
-        borderSkipped: false,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: { label: ctx => ` ${ctx.parsed.y.toLocaleString()}P` },
-        },
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { font: { family: "Noto Sans KR", weight: "700" } },
-        },
-        y: {
-          beginAtZero: true,
-          grid: { color: "#F0EBF9" },
-          ticks: {
-            font: { family: "Noto Sans KR" },
-            callback: v => v.toLocaleString() + "P",
-          },
-        },
-      },
-    },
-  });
+// ── 직전 누적 합계 맵 ────────────────────────────────────
+function buildPrevTotals(prevRecs) {
+  const map = {};
+  prevRecs.forEach(r => { map[r.name] = (map[r.name] || 0) + r.pts; });
+  return map;
 }
 
 // 전역 노출
-window.summary = { render, setThisMonth };
+window.summary = { render, setThisMonth, toggleCumulative };
