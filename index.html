@@ -1,380 +1,514 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>고등부 마일리지 — SkyHope</title>
-  <link rel="stylesheet" href="styles/main.css" />
-</head>
-<body class="readonly">
-
-  <div id="loading-overlay">
-    <div class="spinner"></div>
-    <p>Firebase 연결 중...</p>
-  </div>
-
-  <div id="login-modal">
-    <div class="modal-box">
-      <h2>🔐 관리자 로그인</h2>
-      <p>관리자 비밀번호를 입력하세요</p>
-      <input type="password" id="admin-pw-input" placeholder="비밀번호"
-        onkeydown="if(event.key==='Enter') window.auth.tryLogin()" />
-      <div id="login-error">비밀번호가 틀렸습니다</div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="window.auth.closeModal()">취소</button>
-        <button class="btn btn-primary"   onclick="window.auth.tryLogin()">로그인</button>
-      </div>
-    </div>
-  </div>
-
-  <header>
-    <div class="header-inner">
-      <div>
-        <h1>⛪ 고등부 마일리지</h1>
-        <p><span class="sync-dot"></span>Firebase 실시간 연동</p>
-      </div>
-      <button class="mode-badge mode-readonly" id="mode-btn"
-        onclick="window.auth.toggleMode()">👁 읽기 전용</button>
-    </div>
-  </header>
-
-  <nav>
-    <div class="tabs">
-      <div class="tab active" onclick="window.app.showTab('record',   this)">📝 활동 기록</div>
-      <div class="tab"        onclick="window.app.showTab('summary',  this)">📊 월별 정산</div>
-      <div class="tab"        onclick="window.app.showTab('ranking',  this)">🏆 랭킹</div>
-      <div class="tab"        onclick="window.app.showTab('students', this)">👥 학생 관리</div>
-    </div>
-  </nav>
-
-  <main>
-
-    <!-- ══ 활동 기록 ══ -->
-    <div class="section active" id="tab-record">
-
-      <div class="card admin-only">
-        <div class="card-title">✏️ 활동 마일리지 입력</div>
-        <div id="alert-record" class="alert"></div>
-        <div class="form-row">
-          <div class="form-group" style="max-width:180px">
-            <label>① 날짜</label>
-            <input type="date" id="in-date" />
-          </div>
-          <div class="form-group">
-            <label>② 활동 구분</label>
-            <select id="in-activity" onchange="window.records.onActivityChange()">
-              <option value="">-- 활동 선택 --</option>
-              <option value="금요기도회 참석">금요기도회 참석 (50P)</option>
-              <option value="주일예배 찬양팀 섬김">주일예배 찬양팀 섬김 (50P)</option>
-              <option value="주일예배 안내팀 섬김">주일예배 안내팀 섬김 (30P)</option>
-              <option value="주일예배 출석">주일예배 출석 (100P)</option>
-              <option value="대표기도">대표기도 (300P)</option>
-              <option value="새친구 전도">새친구 전도 (1000P)</option>
-              <option value="기타 활동">기타 활동 (직접 입력)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>③ 이름</label>
-            <select id="in-name"><option value="">-- 학생 선택 --</option></select>
-          </div>
-        </div>
-        <div class="earlybird-row" id="earlybird-row">
-          <label class="toggle-wrap" for="cb-earlybird">
-            <input type="checkbox" id="cb-earlybird" />
-            <span class="toggle-label">🌅 얼리버드 참석</span>
-            <span class="toggle-sub">+50P 추가 적립</span>
-          </label>
-        </div>
-        <div id="extra-row" class="form-row" style="display:none">
-          <div class="form-group">
-            <label>기타 활동 내용</label>
-            <input type="text" id="in-etc-name" placeholder="활동명 입력 (예: 봉사활동)" />
-          </div>
-          <div class="form-group" style="max-width:140px">
-            <label>마일리지 (P)</label>
-            <input type="number" id="in-etc-pts" placeholder="점수" min="1" />
-          </div>
-        </div>
-        <button class="btn btn-primary" onclick="window.records.add()">+ 마일리지 추가</button>
-      </div>
-
-      <div class="card">
-        <div class="card-title">📋 기록 목록</div>
-        <div class="filter-bar">
-          <div class="filter-group">
-            <label>기간</label>
-            <input type="month" id="rec-filter-month" class="month-input" oninput="window.records.applyFilter()" />
-          </div>
-          <div class="filter-group">
-            <label>담임선생님</label>
-            <select id="rec-filter-teacher" onchange="window.records.applyFilter()">
-              <option value="">전체</option>
-              <option value="박태원T">박태원T</option>
-              <option value="김하늘T">김하늘T</option>
-              <option value="박선희T">박선희T</option>
-              <option value="황인혁T">황인혁T</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>학년</label>
-            <select id="rec-filter-grade" onchange="window.records.applyFilter()">
-              <option value="">전체</option>
-              <option value="1학년">1학년</option>
-              <option value="2학년">2학년</option>
-              <option value="3학년">3학년</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>이름</label>
-            <select id="rec-filter-name" onchange="window.records.applyFilter()">
-              <option value="">전체</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>활동</label>
-            <select id="rec-filter-activity" onchange="window.records.applyFilter()">
-              <option value="">전체</option>
-              <option value="주일예배 출석">주일예배 출석</option>
-              <option value="금요기도회 참석">금요기도회 참석</option>
-              <option value="주일예배 찬양팀 섬김">주일예배 찬양팀 섬김</option>
-              <option value="주일예배 안내팀 섬김">주일예배 안내팀 섬김</option>
-              <option value="대표기도">대표기도</option>
-              <option value="새친구 전도">새친구 전도</option>
-              <option value="기타 활동">기타 활동</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>정렬</label>
-            <select id="rec-sort" onchange="window.records.applyFilter()">
-              <option value="date-desc">날짜 최신순</option>
-              <option value="date-asc">날짜 오래된순</option>
-              <option value="pts-desc">마일리지 높은순</option>
-              <option value="pts-asc">마일리지 낮은순</option>
-              <option value="name-asc">이름순</option>
-            </select>
-          </div>
-          <button class="btn btn-sm btn-secondary" onclick="window.records.resetFilter()">초기화</button>
-        </div>
-        <div class="top-actions">
-          <span id="rec-count" class="rec-count"></span>
-          <button class="btn btn-sm btn-gold admin-only" onclick="window.records.exportCSV()">📥 CSV 내보내기</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>날짜</th><th>이름</th><th>활동</th>
-                <th>세부내용</th><th>마일리지</th>
-                <th class="admin-only">삭제</th>
-              </tr>
-            </thead>
-            <tbody id="record-tbody"></tbody>
-          </table>
-        </div>
-        <div id="record-empty" class="empty" style="display:none">
-          <div class="empty-icon">📭</div>
-          <div class="empty-text">조건에 맞는 기록이 없습니다</div>
-        </div>
-        <div class="pagination" id="rec-pagination"></div>
-      </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>고등부 마일리지 — SkyHope</title>
+    <link rel="stylesheet" href="./styles/main.css?v=1.0.1" />
+  </head>
+  <body class="readonly">
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <p>Firebase 연결 중...</p>
     </div>
 
-    <!-- ══ 월별 정산 ══ -->
-    <div class="section" id="tab-summary">
-      <div class="stat-grid" id="stat-grid"></div>
-
-      <div class="card">
-        <div class="card-title">📅 정산 설정</div>
-        <div class="filter-bar">
-          <div class="filter-group">
-            <label>정산 월</label>
-            <input type="month" id="sel-month" class="month-input" oninput="window.summary.render()" />
-          </div>
-          <div class="filter-group">
-            <label>담임선생님</label>
-            <select id="sum-filter-teacher" onchange="window.summary.render()">
-              <option value="">전체</option>
-              <option value="박태원T">박태원T</option>
-              <option value="김하늘T">김하늘T</option>
-              <option value="박선희T">박선희T</option>
-              <option value="황인혁T">황인혁T</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>학년</label>
-            <select id="sum-filter-grade" onchange="window.summary.render()">
-              <option value="">전체</option>
-              <option value="1학년">1학년</option>
-              <option value="2학년">2학년</option>
-              <option value="3학년">3학년</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>정렬</label>
-            <select id="sum-sort" onchange="window.summary.render()">
-              <option value="total-desc">합계 높은순</option>
-              <option value="total-asc">합계 낮은순</option>
-              <option value="name-asc">이름순</option>
-              <option value="cum-desc">누적 높은순</option>
-            </select>
-          </div>
-          <button class="btn btn-sm btn-primary" onclick="window.summary.setThisMonth()">이번 달</button>
-          <button class="btn btn-sm btn-gold"    id="cum-btn" onclick="window.summary.toggleCumulative()">📈 누적합계 보기</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">📊 학생별 마일리지 현황</div>
-        <div class="table-wrap">
-          <table id="summary-table">
-            <thead>
-              <tr id="summary-thead-row">
-                <th>이름</th>
-                <th>학년</th>
-                <th>담임</th>
-                <th>주일출석<br/>(100P)</th>
-                <th>얼리버드<br/>(+50P)</th>
-                <th>금요기도회<br/>(50P)</th>
-                <th>찬양팀<br/>(50P)</th>
-                <th>안내팀<br/>(30P)</th>
-                <th>대표기도<br/>(300P)</th>
-                <th>새친구전도<br/>(1000P)</th>
-                <th>기타</th>
-                <th class="cum-col" style="display:none">직전 누적</th>
-                <th>이번달 합계</th>
-                <th class="cum-col" style="display:none">누적 합계</th>
-              </tr>
-            </thead>
-            <tbody id="summary-tbody"></tbody>
-          </table>
-        </div>
-        <div id="summary-empty" class="empty" style="display:none">
-          <div class="empty-icon">📊</div>
-          <div class="empty-text">해당 월의 기록이 없습니다</div>
+    <div id="login-modal">
+      <div class="modal-box">
+        <h2>🔐 관리자 로그인</h2>
+        <p>관리자 비밀번호를 입력하세요</p>
+        <input
+          type="password"
+          id="admin-pw-input"
+          placeholder="비밀번호"
+          onkeydown="if (event.key === 'Enter') window.auth.tryLogin();"
+        />
+        <div id="login-error">비밀번호가 틀렸습니다</div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="window.auth.closeModal()">
+            취소
+          </button>
+          <button class="btn btn-primary" onclick="window.auth.tryLogin()">
+            로그인
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- ══ 랭킹 ══ -->
-    <div class="section" id="tab-ranking">
-      <div class="card">
-        <div class="card-title">🏆 월별 랭킹</div>
-        <div class="month-bar">
-          <input type="month" id="rank-month" class="month-input" oninput="window.ranking.render()" />
-          <button class="btn btn-sm btn-primary" onclick="window.ranking.setThisMonth()">이번 달</button>
+    <header>
+      <div class="header-inner">
+        <div>
+          <h1>⛪ 고등부 마일리지</h1>
+          <p><span class="sync-dot"></span>Firebase 실시간 연동</p>
         </div>
-        <div id="ranking-list"></div>
+        <button
+          class="mode-badge mode-readonly"
+          id="mode-btn"
+          onclick="window.auth.toggleMode()"
+        >
+          👁 읽기 전용
+        </button>
+      </div>
+    </header>
+
+    <nav>
+      <div class="tabs">
+        <div class="tab active" onclick="window.app.showTab('record', this)">
+          📝 활동 기록
+        </div>
+        <div class="tab" onclick="window.app.showTab('summary', this)">
+          📊 월별 정산
+        </div>
+        <div class="tab" onclick="window.app.showTab('ranking', this)">
+          🏆 랭킹
+        </div>
+        <div class="tab" onclick="window.app.showTab('students', this)">
+          👥 학생 관리
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <!-- ══ 활동 기록 ══ -->
+      <div class="section active" id="tab-record">
+        <div class="card admin-only">
+          <div class="card-title">✏️ 활동 마일리지 입력</div>
+          <div id="alert-record" class="alert"></div>
+          <div class="form-row">
+            <div class="form-group" style="max-width: 180px">
+              <label>① 날짜</label>
+              <input type="date" id="in-date" />
+            </div>
+            <div class="form-group">
+              <label>② 활동 구분</label>
+              <select
+                id="in-activity"
+                onchange="window.records.onActivityChange()"
+              >
+                <option value="">-- 활동 선택 --</option>
+                <option value="금요기도회 참석">금요기도회 참석 (50P)</option>
+                <option value="주일예배 찬양팀 섬김">
+                  주일예배 찬양팀 섬김 (50P)
+                </option>
+                <option value="주일예배 안내팀 섬김">
+                  주일예배 안내팀 섬김 (30P)
+                </option>
+                <option value="주일예배 출석">주일예배 출석 (100P)</option>
+                <option value="대표기도">대표기도 (300P)</option>
+                <option value="새친구 전도">새친구 전도 (1000P)</option>
+                <option value="기타 활동">기타 활동 (직접 입력)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>③ 이름</label>
+              <select id="in-name">
+                <option value="">-- 학생 선택 --</option>
+              </select>
+            </div>
+          </div>
+          <div class="earlybird-row" id="earlybird-row">
+            <label class="toggle-wrap" for="cb-earlybird">
+              <input type="checkbox" id="cb-earlybird" />
+              <span class="toggle-label">🌅 얼리버드 참석</span>
+              <span class="toggle-sub">+50P 추가 적립</span>
+            </label>
+          </div>
+          <div id="extra-row" class="form-row" style="display: none">
+            <div class="form-group">
+              <label>기타 활동 내용</label>
+              <input
+                type="text"
+                id="in-etc-name"
+                placeholder="활동명 입력 (예: 봉사활동)"
+              />
+            </div>
+            <div class="form-group" style="max-width: 140px">
+              <label>마일리지 (P)</label>
+              <input type="number" id="in-etc-pts" placeholder="점수" min="1" />
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="window.records.add()">
+            + 마일리지 추가
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📋 기록 목록</div>
+          <div class="filter-bar">
+            <div class="filter-group">
+              <label>기간</label>
+              <input
+                type="month"
+                id="rec-filter-month"
+                class="month-input"
+                oninput="window.records.applyFilter()"
+              />
+            </div>
+            <div class="filter-group">
+              <label>담임선생님</label>
+              <select
+                id="rec-filter-teacher"
+                onchange="window.records.applyFilter()"
+              >
+                <option value="">전체</option>
+                <option value="박태원T">박태원T</option>
+                <option value="김하늘T">김하늘T</option>
+                <option value="박선희T">박선희T</option>
+                <option value="황인혁T">황인혁T</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>학년</label>
+              <select
+                id="rec-filter-grade"
+                onchange="window.records.applyFilter()"
+              >
+                <option value="">전체</option>
+                <option value="1학년">1학년</option>
+                <option value="2학년">2학년</option>
+                <option value="3학년">3학년</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>이름</label>
+              <select
+                id="rec-filter-name"
+                onchange="window.records.applyFilter()"
+              >
+                <option value="">전체</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>활동</label>
+              <select
+                id="rec-filter-activity"
+                onchange="window.records.applyFilter()"
+              >
+                <option value="">전체</option>
+                <option value="주일예배 출석">주일예배 출석</option>
+                <option value="금요기도회 참석">금요기도회 참석</option>
+                <option value="주일예배 찬양팀 섬김">
+                  주일예배 찬양팀 섬김
+                </option>
+                <option value="주일예배 안내팀 섬김">
+                  주일예배 안내팀 섬김
+                </option>
+                <option value="대표기도">대표기도</option>
+                <option value="새친구 전도">새친구 전도</option>
+                <option value="기타 활동">기타 활동</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>정렬</label>
+              <select id="rec-sort" onchange="window.records.applyFilter()">
+                <option value="date-desc">날짜 최신순</option>
+                <option value="date-asc">날짜 오래된순</option>
+                <option value="pts-desc">마일리지 높은순</option>
+                <option value="pts-asc">마일리지 낮은순</option>
+                <option value="name-asc">이름순</option>
+              </select>
+            </div>
+            <button
+              class="btn btn-sm btn-secondary"
+              onclick="window.records.resetFilter()"
+            >
+              초기화
+            </button>
+          </div>
+          <div class="top-actions">
+            <span id="rec-count" class="rec-count"></span>
+            <button
+              class="btn btn-sm btn-gold admin-only"
+              onclick="window.records.exportCSV()"
+            >
+              📥 CSV 내보내기
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>날짜</th>
+                  <th>이름</th>
+                  <th>활동</th>
+                  <th>세부내용</th>
+                  <th>마일리지</th>
+                  <th class="admin-only">삭제</th>
+                </tr>
+              </thead>
+              <tbody id="record-tbody"></tbody>
+            </table>
+          </div>
+          <div id="record-empty" class="empty" style="display: none">
+            <div class="empty-icon">📭</div>
+            <div class="empty-text">조건에 맞는 기록이 없습니다</div>
+          </div>
+          <div class="pagination" id="rec-pagination"></div>
+        </div>
+      </div>
+
+      <!-- ══ 월별 정산 ══ -->
+      <div class="section" id="tab-summary">
+        <div class="stat-grid" id="stat-grid"></div>
+
+        <div class="card">
+          <div class="card-title">📅 정산 설정</div>
+          <div class="filter-bar">
+            <div class="filter-group">
+              <label>정산 월</label>
+              <input
+                type="month"
+                id="sel-month"
+                class="month-input"
+                oninput="window.summary.render()"
+              />
+            </div>
+            <div class="filter-group">
+              <label>담임선생님</label>
+              <select
+                id="sum-filter-teacher"
+                onchange="window.summary.render()"
+              >
+                <option value="">전체</option>
+                <option value="박태원T">박태원T</option>
+                <option value="김하늘T">김하늘T</option>
+                <option value="박선희T">박선희T</option>
+                <option value="황인혁T">황인혁T</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>학년</label>
+              <select id="sum-filter-grade" onchange="window.summary.render()">
+                <option value="">전체</option>
+                <option value="1학년">1학년</option>
+                <option value="2학년">2학년</option>
+                <option value="3학년">3학년</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>정렬</label>
+              <select id="sum-sort" onchange="window.summary.render()">
+                <option value="total-desc">합계 높은순</option>
+                <option value="total-asc">합계 낮은순</option>
+                <option value="name-asc">이름순</option>
+                <option value="cum-desc">누적 높은순</option>
+              </select>
+            </div>
+            <button
+              class="btn btn-sm btn-primary"
+              onclick="window.summary.setThisMonth()"
+            >
+              이번 달
+            </button>
+            <button
+              class="btn btn-sm btn-gold"
+              id="cum-btn"
+              onclick="window.summary.toggleCumulative()"
+            >
+              📈 누적합계 보기
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📊 학생별 마일리지 현황</div>
+          <div class="table-wrap">
+            <table id="summary-table">
+              <thead>
+                <tr id="summary-thead-row">
+                  <th>이름</th>
+                  <th>학년</th>
+                  <th>담임</th>
+                  <th>주일출석<br />(100P)</th>
+                  <th>얼리버드<br />(+50P)</th>
+                  <th>금요기도회<br />(50P)</th>
+                  <th>찬양팀<br />(50P)</th>
+                  <th>안내팀<br />(30P)</th>
+                  <th>대표기도<br />(300P)</th>
+                  <th>새친구전도<br />(1000P)</th>
+                  <th>기타</th>
+                  <th class="cum-col" style="display: none">직전 누적</th>
+                  <th>이번달 합계</th>
+                  <th class="cum-col" style="display: none">누적 합계</th>
+                </tr>
+              </thead>
+              <tbody id="summary-tbody"></tbody>
+            </table>
+          </div>
+          <div id="summary-empty" class="empty" style="display: none">
+            <div class="empty-icon">📊</div>
+            <div class="empty-text">해당 월의 기록이 없습니다</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 랭킹 ══ -->
+      <div class="section" id="tab-ranking">
+        <div class="card">
+          <div class="card-title">🏆 월별 랭킹</div>
+          <div class="month-bar">
+            <input
+              type="month"
+              id="rank-month"
+              class="month-input"
+              oninput="window.ranking.render()"
+            />
+            <button
+              class="btn btn-sm btn-primary"
+              onclick="window.ranking.setThisMonth()"
+            >
+              이번 달
+            </button>
+          </div>
+          <div id="ranking-list"></div>
+        </div>
+      </div>
+
+      <!-- ══ 학생 관리 ══ -->
+      <div class="section" id="tab-students">
+        <div class="card admin-only">
+          <div class="card-title">👤 학생 추가</div>
+          <div id="alert-student" class="alert"></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>이름</label>
+              <input
+                type="text"
+                id="in-student"
+                placeholder="이름 입력"
+                onkeydown="if (event.key === 'Enter') window.students.add();"
+              />
+            </div>
+            <div class="form-group" style="max-width: 120px">
+              <label>학년</label>
+              <select id="in-grade">
+                <option value="">선택</option>
+                <option value="1학년">1학년</option>
+                <option value="2학년">2학년</option>
+                <option value="3학년">3학년</option>
+              </select>
+            </div>
+            <div class="form-group" style="max-width: 150px">
+              <label>담임선생님</label>
+              <select id="in-teacher">
+                <option value="">선택</option>
+                <option value="박태원T">박태원T</option>
+                <option value="김하늘T">김하늘T</option>
+                <option value="박선희T">박선희T</option>
+                <option value="황인혁T">황인혁T</option>
+              </select>
+            </div>
+            <button
+              class="btn btn-primary"
+              onclick="window.students.add()"
+              style="height: 42px; align-self: flex-end"
+            >
+              추가
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">👥 학생 명단</div>
+          <div class="filter-bar" style="margin-bottom: 16px">
+            <div class="filter-group">
+              <label>담임선생님</label>
+              <select
+                id="stu-filter-teacher"
+                onchange="window.students.applyFilter()"
+              >
+                <option value="">전체</option>
+                <option value="박태원T">박태원T</option>
+                <option value="김하늘T">김하늘T</option>
+                <option value="박선희T">박선희T</option>
+                <option value="황인혁T">황인혁T</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>학년</label>
+              <select
+                id="stu-filter-grade"
+                onchange="window.students.applyFilter()"
+              >
+                <option value="">전체</option>
+                <option value="1학년">1학년</option>
+                <option value="2학년">2학년</option>
+                <option value="3학년">3학년</option>
+              </select>
+            </div>
+          </div>
+          <div id="student-list"></div>
+          <div id="student-empty" class="empty" style="display: none">
+            <div class="empty-icon">👥</div>
+            <div class="empty-text">학생을 추가해보세요!</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ── 학생 수정 모달 ── -->
+    <div id="edit-modal">
+      <div class="modal-box">
+        <h2>✏️ 학생 정보 수정</h2>
+        <p
+          id="edit-modal-name"
+          style="
+            font-weight: 800;
+            color: var(--purple);
+            margin-bottom: 20px;
+            font-size: 16px;
+          "
+        ></p>
+        <input type="hidden" id="edit-student-name" />
+        <div class="form-group" style="margin-bottom: 12px; text-align: left">
+          <label>학년</label>
+          <select id="edit-grade" style="width: 100%">
+            <option value="">선택</option>
+            <option value="1학년">1학년</option>
+            <option value="2학년">2학년</option>
+            <option value="3학년">3학년</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 20px; text-align: left">
+          <label>담임선생님</label>
+          <select id="edit-teacher" style="width: 100%">
+            <option value="">선택</option>
+            <option value="박태원T">박태원T</option>
+            <option value="김하늘T">김하늘T</option>
+            <option value="박선희T">박선희T</option>
+            <option value="황인혁T">황인혁T</option>
+          </select>
+        </div>
+        <div
+          id="edit-error"
+          style="
+            color: #c62828;
+            font-size: 12px;
+            margin-bottom: 10px;
+            display: none;
+          "
+        >
+          학년과 담임선생님을 모두 선택해주세요
+        </div>
+        <div class="modal-actions">
+          <button
+            class="btn btn-secondary"
+            onclick="window.students.closeEditModal()"
+          >
+            취소
+          </button>
+          <button class="btn btn-primary" onclick="window.students.saveEdit()">
+            저장
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- ══ 학생 관리 ══ -->
-    <div class="section" id="tab-students">
-      <div class="card admin-only">
-        <div class="card-title">👤 학생 추가</div>
-        <div id="alert-student" class="alert"></div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>이름</label>
-            <input type="text" id="in-student" placeholder="이름 입력"
-              onkeydown="if(event.key==='Enter') window.students.add()" />
-          </div>
-          <div class="form-group" style="max-width:120px">
-            <label>학년</label>
-            <select id="in-grade">
-              <option value="">선택</option>
-              <option value="1학년">1학년</option>
-              <option value="2학년">2학년</option>
-              <option value="3학년">3학년</option>
-            </select>
-          </div>
-          <div class="form-group" style="max-width:150px">
-            <label>담임선생님</label>
-            <select id="in-teacher">
-              <option value="">선택</option>
-              <option value="박태원T">박태원T</option>
-              <option value="김하늘T">김하늘T</option>
-              <option value="박선희T">박선희T</option>
-              <option value="황인혁T">황인혁T</option>
-            </select>
-          </div>
-          <button class="btn btn-primary" onclick="window.students.add()"
-            style="height:42px; align-self:flex-end">추가</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">👥 학생 명단</div>
-        <div class="filter-bar" style="margin-bottom:16px">
-          <div class="filter-group">
-            <label>담임선생님</label>
-            <select id="stu-filter-teacher" onchange="window.students.applyFilter()">
-              <option value="">전체</option>
-              <option value="박태원T">박태원T</option>
-              <option value="김하늘T">김하늘T</option>
-              <option value="박선희T">박선희T</option>
-              <option value="황인혁T">황인혁T</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>학년</label>
-            <select id="stu-filter-grade" onchange="window.students.applyFilter()">
-              <option value="">전체</option>
-              <option value="1학년">1학년</option>
-              <option value="2학년">2학년</option>
-              <option value="3학년">3학년</option>
-            </select>
-          </div>
-        </div>
-        <div id="student-list"></div>
-        <div id="student-empty" class="empty" style="display:none">
-          <div class="empty-icon">👥</div>
-          <div class="empty-text">학생을 추가해보세요!</div>
-        </div>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- ── 학생 수정 모달 ── -->
-  <div id="edit-modal">
-    <div class="modal-box">
-      <h2>✏️ 학생 정보 수정</h2>
-      <p id="edit-modal-name" style="font-weight:800; color:var(--purple); margin-bottom:20px; font-size:16px"></p>
-      <input type="hidden" id="edit-student-name" />
-      <div class="form-group" style="margin-bottom:12px; text-align:left">
-        <label>학년</label>
-        <select id="edit-grade" style="width:100%">
-          <option value="">선택</option>
-          <option value="1학년">1학년</option>
-          <option value="2학년">2학년</option>
-          <option value="3학년">3학년</option>
-        </select>
-      </div>
-      <div class="form-group" style="margin-bottom:20px; text-align:left">
-        <label>담임선생님</label>
-        <select id="edit-teacher" style="width:100%">
-          <option value="">선택</option>
-          <option value="박태원T">박태원T</option>
-          <option value="김하늘T">김하늘T</option>
-          <option value="박선희T">박선희T</option>
-          <option value="황인혁T">황인혁T</option>
-        </select>
-      </div>
-      <div id="edit-error" style="color:#C62828; font-size:12px; margin-bottom:10px; display:none">학년과 담임선생님을 모두 선택해주세요</div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="window.students.closeEditModal()">취소</button>
-        <button class="btn btn-primary"   onclick="window.students.saveEdit()">저장</button>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="scripts/firebase.js"></script>
-  <script type="module" src="scripts/auth.js"></script>
-  <script type="module" src="scripts/students.js"></script>
-  <script type="module" src="scripts/records.js"></script>
-  <script type="module" src="scripts/summary.js"></script>
-  <script type="module" src="scripts/ranking.js"></script>
-  <script type="module" src="scripts/app.js"></script>
-
-</body>
+    <script type="module" src="./scripts/firebase.js"></script>
+    <script type="module" src="./scripts/auth.js"></script>
+    <script type="module" src="./scripts/students.js"></script>
+    <script type="module" src="./scripts/records.js"></script>
+    <script type="module" src="./scripts/summary.js"></script>
+    <script type="module" src="./scripts/ranking.js"></script>
+    <script type="module" src="./scripts/app.js"></script>
+  </body>
 </html>
