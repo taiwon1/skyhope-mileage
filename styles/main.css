@@ -974,10 +974,37 @@ body:not(.teacher-mode) .teacher-only {
   white-space: nowrap;
 }
 
-/* 정산 테이블 고정 레이아웃으로 가로스크롤 확보 */
+/* 정산 테이블 */
 #summary-table {
   table-layout: auto;
-  min-width: 900px;
+  width: 100%;
+  font-size: 11px;
+}
+/* 정산 테이블 wrapper — 독립적으로 가로스크롤 */
+#tab-summary .table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+#tab-summary .table-wrap::-webkit-scrollbar {
+  height: 5px;
+}
+#tab-summary .table-wrap::-webkit-scrollbar-thumb {
+  background: var(--purple-light);
+  border-radius: 4px;
+}
+#tab-summary .table-wrap::-webkit-scrollbar-track {
+  background: var(--purple-bg);
+}
+
+/* 정산 테이블 셀 패딩 축소 */
+#summary-table thead th {
+  padding: 9px 8px;
+  font-size: 10px;
+}
+#summary-table tbody td {
+  padding: 9px 8px;
+  font-size: 11px;
 }
 
 /* ══════════════════════════════════════════
@@ -1142,39 +1169,67 @@ body.teacher-mode th.admin-only {
     min-width: 140px;
   }
 
-  /* 테이블 — 모바일용 카드형 변환 */
+  /* 테이블 공통 */
   .table-wrap {
     border-radius: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
-
-  /* 활동기록 테이블: 컬럼 축소 */
-  #tab-record table thead th:nth-child(3),  /* 활동 헤더 */
-  #tab-record table tbody td:nth-child(3)   /* 활동 셀 */ {
-    display: none;
-  } /* 활동 컬럼 숨김 — 배지가 작아서 공간 많이 차지 */
-
-  /* 세부내용 컬럼 숨김 */
-  #tab-record table thead th:nth-child(4),
-  #tab-record table tbody td:nth-child(4) {
-    display: none;
-  }
-
   table {
     font-size: 12px;
   }
   thead th {
-    padding: 10px 8px;
+    padding: 8px 6px;
     font-size: 10px;
+    white-space: nowrap;
   }
   tbody td {
-    padding: 10px 8px;
+    padding: 8px 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* 활동기록 테이블 — 가로스크롤로 전체 표시 (컬럼 숨김 제거) */
+  #tab-record .table-wrap {
+    overflow-x: auto;
+  }
+  #tab-record table {
+    min-width: 480px;
+  }
+
+  /* 날짜 셀: 축약 표시 */
+  #tab-record tbody td:nth-child(1) {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* 이름 셀 */
+  #tab-record tbody td:nth-child(2) {
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* 활동 배지 작게 */
+  #tab-record tbody td:nth-child(3) .badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    white-space: nowrap;
+  }
+
+  /* 세부내용 */
+  #tab-record tbody td:nth-child(4) {
+    font-size: 11px;
+  }
+
+  /* 마일리지 */
+  #tab-record tbody td:nth-child(5) strong {
     font-size: 12px;
   }
 
-  /* 이름 셀 줄바꿈 허용 (담임·학년 서브텍스트 포함) */
-  #tab-record tbody td:nth-child(2) {
-    text-align: left;
-    min-width: 70px;
+  /* 삭제 버튼 */
+  #tab-record tbody td:nth-child(6) .btn {
+    padding: 4px 8px;
+    font-size: 10px;
   }
 
   /* 정산 테이블: 좌우 스크롤 안내 */
@@ -1257,5 +1312,35 @@ body.teacher-mode th.admin-only {
   }
   .stat-value {
     font-size: 17px;
+  }
+}
+
+/* 누적합계 컬럼 최소 너비 */
+#summary-table th.cum-col,
+#summary-table td.cum-col {
+  min-width: 68px;
+  white-space: nowrap;
+}
+#summary-table thead th:last-child,
+#summary-table tbody td:last-child {
+  min-width: 68px;
+  white-space: nowrap;
+}
+
+/* 날짜 셀: 기본은 full, 모바일은 short */
+.date-short {
+  display: none;
+}
+.date-full {
+  display: inline;
+}
+
+@media (max-width: 768px) {
+  .date-short {
+    display: inline;
+    font-size: 11px;
+  }
+  .date-full {
+    display: none;
   }
 }

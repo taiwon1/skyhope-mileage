@@ -14,6 +14,10 @@ import {
   updateDoc,
   deleteDoc,
   onSnapshot,
+  query,
+  where,
+  getDocs,
+  writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 import { showAlert } from "./app.js";
@@ -68,12 +72,28 @@ async function add() {
   }
 }
 
-// ── 학생 삭제 ─────────────────────────────────────────────
+// ── 학생 삭제 (관련 활동기록 일괄 삭제) ────────────────────
 async function remove(name) {
   if (!window.authState.isAdmin) return;
-  if (!confirm(`${name} 학생을 삭제할까요? 기록은 유지됩니다.`)) return;
+
+  // 해당 학생의 기록 수 먼저 조회
+  const recSnap = await getDocs(
+    query(collection(db, "records"), where("name", "==", name)),
+  );
+  const recCount = recSnap.size;
+
+  const msg =
+    recCount > 0
+      ? `${name} 학생을 삭제할까요?\n관련 활동기록 ${recCount}건도 함께 삭제됩니다.`
+      : `${name} 학생을 삭제할까요?`;
+  if (!confirm(msg)) return;
+
   try {
-    await deleteDoc(doc(db, "students", name));
+    // writeBatch로 학생 + 기록 전부 원자적 삭제
+    const batch = writeBatch(db);
+    batch.delete(doc(db, "students", name));
+    recSnap.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
   } catch (e) {
     alert("삭제 실패: " + e.message);
   }

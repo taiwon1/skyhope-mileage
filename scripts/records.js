@@ -313,13 +313,13 @@ function renderTable(pageData) {
 
     tbody.innerHTML += `
       <tr>
-        <td>${r.date}</td>
+        <td class="date-cell"><span class="date-full">${r.date}</span><span class="date-short">${r.date.slice(5)}</span></td>
         <td>
           <strong>${r.name}</strong>
           ${meta ? `<br/><span style="font-size:10px;color:var(--gray)">${meta}</span>` : ""}
         </td>
         <td><span class="badge ${BADGE[r.activity] || "badge-purple"}">${r.activity}</span></td>
-        <td class="left">${detail}</td>
+        <td>${detail}</td>
         <td><strong style="color:var(--purple)">${r.pts}P</strong></td>
         ${delBtn}
       </tr>`;

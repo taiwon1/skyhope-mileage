@@ -148,7 +148,7 @@ function renderTable(monthRecs, prevRecs, fTeacher, fGrade, fName, sortKey) {
     tbody.innerHTML += `
       <tr>
         <td><strong>${d.name}</strong></td>
-        <td><span class="badge badge-blue" style="font-size:10px">${d.grade}</span></td>
+        <td><span class="badge ${d.grade === "1학년" ? "badge-green" : d.grade === "2학년" ? "badge-gold" : "badge-red"}" style="font-size:10px">${d.grade}</span></td>
         <td class="td-teacher">${d.teacher}</td>
         <td>${fmtPts(d.attend)}</td>
         <td>${fmtPts(d.early)}</td>
