@@ -1,0 +1,462 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+
+/* ══════════════════════════════════════════
+   CSS 변수 (디자인 토큰)
+══════════════════════════════════════════ */
+:root {
+  --purple:      #6B4FA0;
+  --purple-light:#9B7FD0;
+  --purple-bg:   #F0EBF9;
+  --gold:        #E8A020;
+  --gold-bg:     #FFF8EC;
+  --dark:        #1E1A2E;
+  --gray:        #6B7280;
+  --border:      #E0D8F0;
+}
+
+/* ══════════════════════════════════════════
+   리셋 & 기본
+══════════════════════════════════════════ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: #F4F0FB;
+  color: var(--dark);
+  min-height: 100vh;
+}
+
+/* ══════════════════════════════════════════
+   로딩 오버레이
+══════════════════════════════════════════ */
+#loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #4B2D8A, #7B5FBF);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  color: white;
+}
+#loading-overlay p { font-size: 14px; opacity: .8; }
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, .3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════
+   모달
+══════════════════════════════════════════ */
+#login-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 26, 46, .7);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 8000;
+}
+#login-modal.show { display: flex; }
+
+.modal-box {
+  background: white;
+  border-radius: 20px;
+  padding: 36px;
+  width: 340px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
+  text-align: center;
+}
+.modal-box h2 {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--purple);
+  margin-bottom: 6px;
+}
+.modal-box p {
+  font-size: 12px;
+  color: var(--gray);
+  margin-bottom: 24px;
+}
+.modal-box input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 12px;
+}
+.modal-box input:focus { border-color: var(--purple); }
+
+.modal-actions { display: flex; gap: 10px; }
+
+#login-error {
+  color: #C62828;
+  font-size: 12px;
+  margin-bottom: 10px;
+  display: none;
+}
+
+/* ══════════════════════════════════════════
+   헤더
+══════════════════════════════════════════ */
+header {
+  background: linear-gradient(135deg, #4B2D8A 0%, #7B5FBF 60%, #9B80D0 100%);
+  color: white;
+  padding: 20px 32px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 24px rgba(107, 79, 160, .25);
+}
+.header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+header h1 { font-size: 20px; font-weight: 900; letter-spacing: -.5px; }
+header p  { font-size: 11px; opacity: .75; margin-top: 2px; }
+
+/* 동기화 점 */
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4CAF50;
+  display: inline-block;
+  margin-right: 6px;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+
+/* 모드 배지 */
+.mode-badge {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+.mode-admin    { background: #FFD700; color: #5A3D00; }
+.mode-readonly { background: rgba(255, 255, 255, .25); color: white; }
+
+/* ══════════════════════════════════════════
+   네비게이션 탭
+══════════════════════════════════════════ */
+nav {
+  background: white;
+  border-bottom: 2px solid var(--border);
+  position: sticky;
+  top: 68px;
+  z-index: 99;
+  overflow-x: auto;
+}
+.tabs { max-width: 960px; margin: 0 auto; display: flex; }
+.tab {
+  padding: 13px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all .2s;
+  white-space: nowrap;
+}
+.tab:hover  { color: var(--purple); }
+.tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+
+/* ══════════════════════════════════════════
+   메인 레이아웃
+══════════════════════════════════════════ */
+main { max-width: 960px; margin: 0 auto; padding: 24px 20px 60px; }
+.section         { display: none; }
+.section.active  { display: block; }
+
+/* ══════════════════════════════════════════
+   카드
+══════════════════════════════════════════ */
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(107, 79, 160, .08);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--purple);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--purple-bg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ══════════════════════════════════════════
+   폼 요소
+══════════════════════════════════════════ */
+.form-row   { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 150px; }
+
+label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+input,
+select {
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--dark);
+  outline: none;
+  transition: border-color .2s;
+  background: white;
+}
+input:focus,
+select:focus { border-color: var(--purple); }
+
+/* ══════════════════════════════════════════
+   버튼
+══════════════════════════════════════════ */
+.btn {
+  padding: 11px 22px;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-primary {
+  background: var(--purple);
+  color: white;
+}
+.btn-primary:hover {
+  background: #5A3D8E;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(107, 79, 160, .35);
+}
+.btn-secondary { background: var(--border); color: var(--dark); }
+.btn-gold      { background: var(--gold); color: white; }
+.btn-gold:hover { background: #C8861A; }
+.btn-danger { background: #EF4444; color: white; padding: 6px 12px; font-size: 11px; }
+.btn-danger:hover { background: #DC2626; }
+.btn-sm { padding: 6px 14px; font-size: 11px; }
+
+/* ══════════════════════════════════════════
+   테이블
+══════════════════════════════════════════ */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: var(--purple);
+  color: white;
+  padding: 12px 14px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+tbody tr:hover { background: var(--purple-bg); }
+tbody tr:last-child { border-bottom: none; }
+tbody td { padding: 11px 14px; text-align: center; font-size: 13px; }
+tbody td.left { text-align: left; }
+
+/* ══════════════════════════════════════════
+   배지
+══════════════════════════════════════════ */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.badge-purple { background: var(--purple-bg); color: var(--purple); }
+.badge-gold   { background: var(--gold-bg);   color: var(--gold); }
+.badge-green  { background: #E8F5E9; color: #388E3C; }
+.badge-red    { background: #FFEBEE; color: #C62828; }
+.badge-blue   { background: #E3F2FD; color: #1565C0; }
+.badge-teal   { background: #E0F2F1; color: #00695C; }
+
+/* ══════════════════════════════════════════
+   통계 카드 그리드
+══════════════════════════════════════════ */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: linear-gradient(135deg, var(--purple) 0%, #9B7FD0 100%);
+  border-radius: 14px;
+  padding: 18px 20px;
+  color: white;
+}
+.stat-card.gold  { background: linear-gradient(135deg, #C8861A 0%, var(--gold) 100%); }
+.stat-card.green { background: linear-gradient(135deg, #2E7D32 0%, #66BB6A 100%); }
+.stat-label { font-size: 11px; opacity: .8; margin-bottom: 6px; }
+.stat-value { font-size: 26px; font-weight: 900; }
+.stat-unit  { font-size: 12px; opacity: .7; margin-left: 2px; }
+
+/* ══════════════════════════════════════════
+   월 선택 바
+══════════════════════════════════════════ */
+.month-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.month-input {
+  padding: 9px 14px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+/* ══════════════════════════════════════════
+   랭킹 아이템
+══════════════════════════════════════════ */
+.rank-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: white;
+  border: 1.5px solid var(--border);
+  margin-bottom: 10px;
+  transition: all .2s;
+}
+.rank-item:hover { border-color: var(--purple); }
+
+.rank-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 14px;
+  background: var(--purple-bg);
+  color: var(--purple);
+  flex-shrink: 0;
+}
+.rank-num.top1 { background: #FFD700; color: #7A5900; }
+.rank-num.top2 { background: #E0E0E0; color: #555; }
+.rank-num.top3 { background: #FFCBA4; color: #8B4513; }
+.rank-name { font-weight: 700; font-size: 14px; flex: 1; }
+.rank-pts  { font-size: 18px; font-weight: 900; color: var(--purple); }
+
+/* ══════════════════════════════════════════
+   빈 상태
+══════════════════════════════════════════ */
+.empty { text-align: center; padding: 48px 20px; color: #BBB; }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-text { font-size: 14px; }
+
+/* ══════════════════════════════════════════
+   알림
+══════════════════════════════════════════ */
+.alert {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-bottom: 16px;
+  display: none;
+}
+.alert.show    { display: block; }
+.alert-success { background: #E8F5E9; color: #2E7D32; border: 1px solid #C8E6C9; }
+.alert-error   { background: #FFEBEE; color: #C62828; border: 1px solid #FFCDD2; }
+
+/* ══════════════════════════════════════════
+   얼리버드 토글
+══════════════════════════════════════════ */
+.earlybird-row       { display: none; margin-bottom: 14px; }
+.earlybird-row.show  { display: flex; }
+
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--gold-bg);
+  border-radius: 10px;
+  border: 2px solid #F5D080;
+  cursor: pointer;
+  user-select: none;
+}
+.toggle-wrap input[type=checkbox] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+.toggle-label { font-size: 13px; font-weight: 700; color: var(--gold); }
+.toggle-sub   { font-size: 11px; color: #A07010; margin-left: 4px; }
+
+/* ══════════════════════════════════════════
+   차트
+══════════════════════════════════════════ */
+.chart-wrap { position: relative; height: 320px; margin-top: 8px; }
+
+/* ══════════════════════════════════════════
+   상단 액션 버튼
+══════════════════════════════════════════ */
+.top-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+  gap: 10px;
+}
+
+/* ══════════════════════════════════════════
+   관리자 전용 요소 숨김 (읽기 전용 모드)
+══════════════════════════════════════════ */
+body.readonly .admin-only { display: none !important; }
+
+/* ══════════════════════════════════════════
+   모바일 반응형
+══════════════════════════════════════════ */
+@media (max-width: 600px) {
+  header        { padding: 14px 16px; }
+  header h1     { font-size: 17px; }
+  main          { padding: 16px 12px 60px; }
+  .tab          { padding: 12px 12px; font-size: 12px; }
+}
