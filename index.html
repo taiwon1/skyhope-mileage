@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고등부 마일리지 — SkyHope</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+  :root {
+    --purple:#6B4FA0; --purple-light:#9B7FD0; --purple-bg:#F0EBF9;
+    --gold:#E8A020; --gold-bg:#FFF8EC; --dark:#1E1A2E;
+    --gray:#6B7280; --border:#E0D8F0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Noto Sans KR',sans-serif;background:#F4F0FB;color:var(--dark);min-height:100vh;}
+
+  /* ── 로딩 오버레이 ── */
+  #loading-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#4B2D8A,#7B5FBF);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:white;}
+  .spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #loading-overlay p{font-size:14px;opacity:.8;}
+
+  /* ── 관리자 로그인 모달 ── */
+  #login-modal{position:fixed;inset:0;background:rgba(30,26,46,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:8000;}
+  #login-modal.show{display:flex;}
+  .modal-box{background:white;border-radius:20px;padding:36px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center;}
+  .modal-box h2{font-size:18px;font-weight:900;color:var(--purple);margin-bottom:6px;}
+  .modal-box p{font-size:12px;color:var(--gray);margin-bottom:24px;}
+  .modal-box input{width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;outline:none;margin-bottom:12px;}
+  .modal-box input:focus{border-color:var(--purple);}
+  .modal-actions{display:flex;gap:10px;}
+
+  header{background:linear-gradient(135deg,#4B2D8A 0%,#7B5FBF 60%,#9B80D0 100%);color:white;padding:20px 32px;position:sticky;top:0;z-index:100;box-shadow:0 4px 24px rgba(107,79,160,.25);}
+  .header-inner{max-width:960px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;}
+  header h1{font-size:20px;font-weight:900;letter-spacing:-.5px;}
+  header p{font-size:11px;opacity:.75;margin-top:2px;}
+  .mode-badge{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;border:none;font-family:inherit;}
+  .mode-admin{background:#FFD700;color:#5A3D00;}
+  .mode-readonly{background:rgba(255,255,255,.25);color:white;}
+
+  nav{background:white;border-bottom:2px solid var(--border);position:sticky;top:68px;z-index:99;overflow-x:auto;}
+  .tabs{max-width:960px;margin:0 auto;display:flex;}
+  .tab{padding:13px 18px;font-size:13px;font-weight:700;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;}
+  .tab:hover{color:var(--purple);}
+  .tab.active{color:var(--purple);border-bottom-color:var(--purple);}
+
+  main{max-width:960px;margin:0 auto;padding:24px 20px 60px;}
+  .section{display:none;}
+  .section.active{display:block;}
+
+  .card{background:white;border-radius:16px;box-shadow:0 2px 16px rgba(107,79,160,.08);padding:24px;margin-bottom:20px;}
+  .card-title{font-size:15px;font-weight:800;color:var(--purple);margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--purple-bg);display:flex;align-items:center;gap:8px;}
+
+  .form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .form-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:150px;}
+  label{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;}
+  input,select{padding:10px 14px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;color:var(--dark);outline:none;transition:border-color .2s;background:white;}
+  input:focus,select:focus{border-color:var(--purple);}
+
+  .btn{padding:11px 22px;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+  .btn-primary{background:var(--purple);color:white;}
+  .btn-primary:hover{background:#5A3D8E;transform:translateY(-1px);box-shadow:0 4px 14px rgba(107,79,160,.35);}
+  .btn-secondary{background:var(--border);color:var(--dark);}
+  .btn-gold{background:var(--gold);color:white;}
+  .btn-gold:hover{background:#C8861A;}
+  .btn-danger{background:#EF4444;color:white;padding:6px 12px;font-size:11px;}
+  .btn-danger:hover{background:#DC2626;}
+  .btn-sm{padding:6px 14px;font-size:11px;}
+
+  .table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{background:var(--purple);color:white;padding:12px 14px;text-align:center;font-size:11px;font-weight:700;white-space:nowrap;}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+  tbody tr:hover{background:var(--purple-bg);}
+  tbody tr:last-child{border-bottom:none;}
+  tbody td{padding:11px 14px;text-align:center;font-size:13px;}
+  tbody td.left{text-align:left;}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+  .badge-purple{background:var(--purple-bg);color:var(--purple);}
+  .badge-gold{background:var(--gold-bg);color:var(--gold);}
+  .badge-green{background:#E8F5E9;color:#388E3C;}
+  .badge-red{background:#FFEBEE;color:#C62828;}
+  .badge-blue{background:#E3F2FD;color:#1565C0;}
+  .badge-teal{background:#E0F2F1;color:#00695C;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px;}
+  .stat-card{background:linear-gradient(135deg,var(--purple) 0%,#9B7FD0 100%);border-radius:14px;padding:18px 20px;color:white;}
+  .stat-card.gold{background:linear-gradient(135deg,#C8861A 0%,var(--gold) 100%);}
+  .stat-card.green{background:linear-gradient(135deg,#2E7D32 0%,#66BB6A 100%);}
+  .stat-label{font-size:11px;opacity:.8;margin-bottom:6px;}
+  .stat-value{font-size:26px;font-weight:900;}
+  .stat-unit{font-size:12px;opacity:.7;margin-left:2px;}
+
+  .month-bar{display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap;}
+  .month-input{padding:9px 14px;border:2px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;}
+
+  .rank-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;background:white;border:1.5px solid var(--border);margin-bottom:10px;transition:all .2s;}
+  .rank-item:hover{border-color:var(--purple);}
+  .rank-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;background:var(--purple-bg);color:var(--purple);flex-shrink:0;}
+  .rank-num.top1{background:#FFD700;color:#7A5900;}
+  .rank-num.top2{background:#E0E0E0;color:#555;}
+  .rank-num.top3{background:#FFCBA4;color:#8B4513;}
+  .rank-name{font-weight:700;font-size:14px;flex:1;}
+  .rank-pts{font-size:18px;font-weight:900;color:var(--purple);}
+
+  .empty{text-align:center;padding:48px 20px;color:#BBB;}
+  .empty-icon{font-size:48px;margin-bottom:12px;}
+  .empty-text{font-size:14px;}
+
+  .alert{padding:12px 16px;border-radius:10px;font-size:12px;margin-bottom:16px;display:none;}
+  .alert.show{display:block;}
+  .alert-success{background:#E8F5E9;color:#2E7D32;border:1px solid #C8E6C9;}
+  .alert-error{background:#FFEBEE;color:#C62828;border:1px solid #FFCDD2;}
+
+  .top-actions{display:flex;justify-content:flex-end;margin-bottom:16px;gap:10px;}
+
+  .earlybird-row{display:none;margin-bottom:14px;}
+  .earlybird-row.show{display:flex;}
+  .toggle-wrap{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--gold-bg);border-radius:10px;border:2px solid #F5D080;cursor:pointer;user-select:none;}
+  .toggle-wrap input[type=checkbox]{width:18px;height:18px;accent-color:var(--gold);cursor:pointer;}
+  .toggle-label{font-size:13px;font-weight:700;color:var(--gold);}
+  .toggle-sub{font-size:11px;color:#A07010;margin-left:4px;}
+
+  .chart-wrap{position:relative;height:320px;margin-top:8px;}
+
+  /* readonly 숨김 */
+  .admin-only{transition:opacity .2s;}
+  body.readonly .admin-only{display:none!important;}
+
+  /* 실시간 sync 표시 */
+  .sync-dot{width:8px;height:8px;border-radius:50%;background:#4CAF50;display:inline-block;margin-right:6px;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+  /* Firebase 설정 안내 박스 */
+  .info-box{background:var(--purple-bg);border:2px solid var(--purple);border-radius:12px;padding:16px 20px;margin-bottom:20px;font-size:13px;line-height:1.8;color:var(--purple);}
+  .info-box strong{font-weight:800;}
+  .info-box code{background:white;padding:2px 8px;border-radius:6px;font-size:12px;font-family:monospace;}
+
+  @media(max-width:600px){
+    header{padding:14px 16px;}
+    header h1{font-size:17px;}
+    main{padding:16px 12px 60px;}
+    .tab{padding:12px 12px;font-size:12px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- 로딩 -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p>Firebase 연결 중...</p>
+</div>
+
+<!-- 관리자 로그인 모달 -->
+<div id="login-modal">
+  <div class="modal-box">
+    <h2>🔐 관리자 로그인</h2>
+    <p>관리자 비밀번호를 입력하세요</p>
+    <input type="password" id="admin-pw-input" placeholder="비밀번호" onkeydown="if(event.key==='Enter')tryAdminLogin()">
+    <div id="login-error" style="color:#C62828;font-size:12px;margin-bottom:10px;display:none;">비밀번호가 틀렸습니다</div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeLoginModal()">취소</button>
+      <button class="btn btn-primary" style="flex:1" onclick="tryAdminLogin()">로그인</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <h1>⛪ 고등부 마일리지</h1>
+      <p><span class="sync-dot"></span>Firebase 실시간 연동</p>
+    </div>
+    <button class="mode-badge mode-readonly" id="mode-btn" onclick="toggleMode()">👁 읽기 전용</button>
+  </div>
+</header>
+
+<nav>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('record',this)">📝 활동 기록</div>
+    <div class="tab" onclick="showTab('summary',this)">📊 월별 정산</div>
+    <div class="tab" onclick="showTab('ranking',this)">🏆 랭킹</div>
+    <div class="tab" onclick="showTab('students',this)">👥 학생 관리</div>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ══ 활동 기록 ══ -->
+  <div class="section active" id="tab-record">
+    <div class="card admin-only">
+      <div class="card-title">✏️ 활동 마일리지 입력</div>
+      <div id="alert-record" class="alert"></div>
+      <div class="form-row">
+        <div class="form-group" style="max-width:180px">
+          <label>① 날짜</label>
+          <input type="date" id="in-date">
+        </div>
+        <div class="form-group">
+          <label>② 활동 구분</label>
+          <select id="in-activity" onchange="onActivityChange()">
+            <option value="">-- 활동 선택 --</option>
+            <option value="금요기도회 참석">금요기도회 참석 (50P)</option>
+            <option value="주일예배 찬양팀 섬김">주일예배 찬양팀 섬김 (50P)</option>
+            <option value="주일예배 안내팀 섬김">주일예배 안내팀 섬김 (30P)</option>
+            <option value="주일예배 출석">주일예배 출석 (100P)</option>
+            <option value="대표기도">대표기도 (300P)</option>
+            <option value="새친구 전도">새친구 전도 (1000P)</option>
+            <option value="기타 활동">기타 활동 (직접 입력)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>③ 이름</label>
+          <select id="in-name"><option value="">-- 학생 선택 --</option></select>
+        </div>
+      </div>
+      <div class="earlybird-row" id="earlybird-row">
+        <label class="toggle-wrap" for="cb-earlybird">
+          <input type="checkbox" id="cb-earlybird">
+          <span class="toggle-label">🌅 얼리버드 참석</span>
+          <span class="toggle-sub">+50P 추가 적립</span>
+        </label>
+      </div>
+      <div id="extra-row" style="display:none;" class="form-row">
+        <div class="form-group">
+          <label>기타 활동 내용</label>
+          <input type="text" id="in-etc-name" placeholder="활동명 입력 (예: 봉사활동)">
+        </div>
+        <div class="form-group" style="max-width:140px">
+          <label>마일리지 (P)</label>
+          <input type="number" id="in-etc-pts" placeholder="점수" min="1">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addRecord()">+ 마일리지 추가</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 기록 목록</div>
+      <div class="top-actions">
+        <button class="btn btn-sm btn-gold admin-only" onclick="exportCSV()">📥 CSV 내보내기</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>날짜</th><th>이름</th><th>활동</th><th>세부내용</th><th>마일리지</th><th class="admin-only">삭제</th></tr>
+          </thead>
+          <tbody id="record-tbody"></tbody>
+        </table>
+      </div>
+      <div id="record-empty" class="empty" style="display:none">
+        <div class="empty-icon">📭</div>
+        <div class="empty-text">아직 기록이 없어요!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 월별 정산 ══ -->
+  <div class="section" id="tab-summary">
+    <div class="stat-grid" id="stat-grid"></div>
+    <div class="card">
+      <div class="card-title">📅 정산 월 선택</div>
+      <div class="month-bar">
+        <input type="month" id="sel-month" class="month-input" oninput="renderSummary()">
+        <button class="btn btn-sm btn-primary" onclick="setThisMonth()">이번 달</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 학생별 마일리지 현황</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>이름</th><th>주일출석<br>(100P)</th><th>얼리버드<br>(+50P)</th>
+              <th>금요기도회<br>(50P)</th><th>찬양팀<br>(50P)</th><th>안내팀<br>(30P)</th>
+              <th>대표기도<br>(300P)</th><th>새친구전도<br>(1000P)</th><th>기타</th><th>합계</th>
+            </tr>
+          </thead>
+          <tbody id="summary-tbody"></tbody>
+        </table>
+      </div>
+      <div id="summary-empty" class="empty" style="display:none">
+        <div class="empty-icon">📊</div><div class="empty-text">해당 월의 기록이 없습니다</div>
+      </div>
+    </div>
+    <div class="card" id="chart-card" style="display:none">
+      <div class="card-title">📈 학생별 마일리지 그래프</div>
+      <div class="chart-wrap"><canvas id="summary-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══ 랭킹 ══ -->
+  <div class="section" id="tab-ranking">
+    <div class="card">
+      <div class="card-title">🏆 월별 랭킹</div>
+      <div class="month-bar">
+        <input type="month" id="rank-month" class="month-input" oninput="renderRanking()">
+        <button class="btn btn-sm btn-primary" onclick="setRankThisMonth()">이번 달</button>
+      </div>
+      <div id="ranking-list"></div>
+    </div>
+  </div>
+
+  <!-- ══ 학생 관리 ══ -->
+  <div class="section" id="tab-students">
+    <div class="card admin-only">
+      <div class="card-title">👤 학생 추가</div>
+      <div id="alert-student" class="alert"></div>
+      <div class="form-row" style="align-items:flex-end">
+        <div class="form-group">
+          <label>학생 이름</label>
+          <input type="text" id="in-student" placeholder="이름 입력" onkeydown="if(event.key==='Enter')addStudent()">
+        </div>
+        <button class="btn btn-primary" onclick="addStudent()" style="height:42px">추가</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">👥 학생 명단</div>
+      <div id="student-list"></div>
+      <div id="student-empty" class="empty" style="display:none">
+        <div class="empty-icon">👥</div><div class="empty-text">학생을 추가해보세요!</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, deleteDoc, doc,
+  onSnapshot, query, orderBy, setDoc, getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ── Firebase 초기화 ──────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCwE_Yc9IjqfDXdTSff1D8yazBgotqP0_Y",
+  authDomain: "skyhope-mileage.firebaseapp.com",
+  projectId: "skyhope-mileage",
+  storageBucket: "skyhope-mileage.firebasestorage.app",
+  messagingSenderId: "372872658446",
+  appId: "1:372872658446:web:947e893aea83082a18065f"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// ── 관리자 비밀번호 (여기서 변경하세요) ─────────────────
+const ADMIN_PASSWORD = "skyhope2025";
+
+// ── State ─────────────────────────────────────────────────
+let isAdmin = false;
+let records  = [];   // Firestore 실시간
+let students = [];   // Firestore 실시간
+
+// ── 모드 전환 ─────────────────────────────────────────────
+window.toggleMode = function() {
+  if (isAdmin) {
+    // 로그아웃
+    isAdmin = false;
+    document.body.classList.add('readonly');
+    document.getElementById('mode-btn').textContent = '👁 읽기 전용';
+    document.getElementById('mode-btn').className = 'mode-badge mode-readonly';
+  } else {
+    document.getElementById('login-modal').classList.add('show');
+    document.getElementById('admin-pw-input').focus();
+  }
+};
+
+window.tryAdminLogin = function() {
+  const pw = document.getElementById('admin-pw-input').value;
+  if (pw === ADMIN_PASSWORD) {
+    isAdmin = true;
+    document.body.classList.remove('readonly');
+    document.getElementById('mode-btn').textContent = '🔑 관리자 모드';
+    document.getElementById('mode-btn').className = 'mode-badge mode-admin';
+    closeLoginModal();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('admin-pw-input').value = '';
+    document.getElementById('admin-pw-input').focus();
+  }
+};
+
+window.closeLoginModal = function() {
+  document.getElementById('login-modal').classList.remove('show');
+  document.getElementById('admin-pw-input').value = '';
+  document.getElementById('login-error').style.display = 'none';
+};
+
+// ── 탭 ────────────────────────────────────────────────────
+window.showTab = function(id, el) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  el.classList.add('active');
+  if(id==='summary') renderSummary();
+  if(id==='ranking') renderRanking();
+};
+
+// ── 점수표 ────────────────────────────────────────────────
+const PTS = {
+  '금요기도회 참석':50,'주일예배 찬양팀 섬김':50,'주일예배 안내팀 섬김':30,
+  '주일예배 출석':100,'대표기도':300,'새친구 전도':1000,
+};
+const BADGE = {
+  '금요기도회 참석':'badge-purple','주일예배 찬양팀 섬김':'badge-green',
+  '주일예배 안내팀 섬김':'badge-green','주일예배 출석':'badge-blue',
+  '대표기도':'badge-gold','새친구 전도':'badge-red','기타 활동':'badge-teal',
+};
+
+window.onActivityChange = function() {
+  const v = document.getElementById('in-activity').value;
+  document.getElementById('extra-row').style.display = v==='기타 활동'?'flex':'none';
+  document.getElementById('earlybird-row').classList.toggle('show', v==='주일예배 출석');
+  if(v!=='주일예배 출석') document.getElementById('cb-earlybird').checked=false;
+};
+
+// ── 기록 추가 (Firestore) ─────────────────────────────────
+window.addRecord = async function() {
+  if(!isAdmin){ showAlert('record','관리자 모드에서만 가능합니다','error'); return; }
+  const date     = document.getElementById('in-date').value;
+  const name     = document.getElementById('in-name').value;
+  const activity = document.getElementById('in-activity').value;
+  if(!date||!name||!activity){ showAlert('record','날짜, 활동구분, 이름을 모두 입력해주세요','error'); return; }
+
+  let pts=PTS[activity]||0, etcName='', earlybird=false;
+  if(activity==='기타 활동'){
+    etcName=document.getElementById('in-etc-name').value.trim();
+    pts=parseInt(document.getElementById('in-etc-pts').value)||0;
+    if(!etcName||pts<=0){ showAlert('record','기타 활동 내용과 점수를 입력해주세요','error'); return; }
+  }
+  if(activity==='주일예배 출석'){
+    earlybird=document.getElementById('cb-earlybird').checked;
+    if(earlybird) pts+=50;
+  }
+
+  try {
+    await addDoc(collection(db,'records'),{
+      date, name, activity, etcName, pts, earlybird,
+      createdAt: Date.now()
+    });
+    showAlert('record',`${name} 학생에게 ${pts}P 적립! 🎉`,'success');
+    // 날짜·활동 유지, 이름만 초기화
+    document.getElementById('in-name').value='';
+    document.getElementById('in-etc-name').value='';
+    document.getElementById('in-etc-pts').value='';
+    document.getElementById('cb-earlybird').checked=false;
+  } catch(e) {
+    showAlert('record','저장 실패: '+e.message,'error');
+  }
+};
+
+// ── 기록 삭제 (Firestore) ─────────────────────────────────
+window.deleteRecord = async function(id) {
+  if(!isAdmin) return;
+  if(!confirm('이 기록을 삭제할까요?')) return;
+  try { await deleteDoc(doc(db,'records',id)); }
+  catch(e){ alert('삭제 실패: '+e.message); }
+};
+
+// ── 기록 렌더 ─────────────────────────────────────────────
+function renderRecords() {
+  const tbody = document.getElementById('record-tbody');
+  const empty = document.getElementById('record-empty');
+  const sorted = [...records].sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt-a.createdAt);
+  tbody.innerHTML='';
+  empty.style.display = sorted.length?'none':'block';
+  sorted.forEach(r=>{
+    let detail='-';
+    if(r.activity==='기타 활동') detail=r.etcName;
+    else if(r.activity==='주일예배 출석'&&r.earlybird) detail='🌅 얼리버드';
+    const delBtn = isAdmin
+      ? `<td><button class="btn btn-danger btn-sm admin-only" onclick="deleteRecord('${r._id}')">삭제</button></td>`
+      : `<td class="admin-only"></td>`;
+    tbody.innerHTML+=`
+      <tr>
+        <td>${r.date}</td>
+        <td><strong>${r.name}</strong></td>
+        <td><span class="badge ${BADGE[r.activity]||'badge-purple'}">${r.activity}</span></td>
+        <td class="left">${detail}</td>
+        <td><strong style="color:var(--purple)">${r.pts}P</strong></td>
+        ${delBtn}
+      </tr>`;
+  });
+}
+
+// ── 월별 정산 ─────────────────────────────────────────────
+let chartInstance=null;
+
+window.setThisMonth = function(){
+  const now=new Date();
+  document.getElementById('sel-month').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  renderSummary();
+};
+
+function renderSummary(){
+  const month=document.getElementById('sel-month').value;
+  const filtered=month?records.filter(r=>r.date.startsWith(month)):records;
+  const totalPts=filtered.reduce((s,r)=>s+r.pts,0);
+  document.getElementById('stat-grid').innerHTML=`
+    <div class="stat-card"><div class="stat-label">총 마일리지</div><div class="stat-value">${totalPts.toLocaleString()}<span class="stat-unit">P</span></div></div>
+    <div class="stat-card gold"><div class="stat-label">총 활동 기록</div><div class="stat-value">${filtered.length}<span class="stat-unit">건</span></div></div>
+    <div class="stat-card green"><div class="stat-label">참여 학생 수</div><div class="stat-value">${new Set(filtered.map(r=>r.name)).size}<span class="stat-unit">명</span></div></div>
+  `;
+  const tbody=document.getElementById('summary-tbody');
+  const empty=document.getElementById('summary-empty');
+  tbody.innerHTML='';
+  if(!filtered.length){ empty.style.display='block'; document.getElementById('chart-card').style.display='none'; return; }
+  empty.style.display='none';
+
+  const map={};
+  filtered.forEach(r=>{
+    if(!map[r.name]) map[r.name]={attend:0,early:0,fri:0,choir:0,guide:0,prayer:0,friend:0,etc:0,total:0};
+    const m=map[r.name];
+    if(r.activity==='주일예배 출석'){ m.attend+=100; if(r.earlybird) m.early+=50; }
+    else if(r.activity==='금요기도회 참석') m.fri+=r.pts;
+    else if(r.activity==='주일예배 찬양팀 섬김') m.choir+=r.pts;
+    else if(r.activity==='주일예배 안내팀 섬김') m.guide+=r.pts;
+    else if(r.activity==='대표기도') m.prayer+=r.pts;
+    else if(r.activity==='새친구 전도') m.friend+=r.pts;
+    else m.etc+=r.pts;
+    m.total+=r.pts;
+  });
+
+  const rows=Object.entries(map).sort((a,b)=>b[1].total-a[1].total);
+  const fmt=v=>v?`<span style="color:var(--purple);font-weight:700">${v}P</span>`:'<span style="color:#CCC">-</span>';
+  rows.forEach(([name,d])=>{
+    tbody.innerHTML+=`<tr>
+      <td><strong>${name}</strong></td>
+      <td>${fmt(d.attend)}</td><td>${fmt(d.early)}</td><td>${fmt(d.fri)}</td>
+      <td>${fmt(d.choir)}</td><td>${fmt(d.guide)}</td><td>${fmt(d.prayer)}</td>
+      <td>${fmt(d.friend)}</td><td>${fmt(d.etc)}</td>
+      <td><strong style="color:var(--purple);font-size:15px">${d.total}P</strong></td>
+    </tr>`;
+  });
+
+  document.getElementById('chart-card').style.display='block';
+  const palette=['#6B4FA0','#9B7FD0','#E8A020','#388E3C','#1565C0','#C62828','#00838F','#6A1B9A','#558B2F','#E65100'];
+  if(chartInstance) chartInstance.destroy();
+  chartInstance=new Chart(document.getElementById('summary-chart'),{
+    type:'bar',
+    data:{labels:rows.map(([n])=>n),datasets:[{
+      label:'마일리지 (P)',data:rows.map(([,d])=>d.total),
+      backgroundColor:rows.map((_,i)=>palette[i%palette.length]),
+      borderRadius:8,borderSkipped:false
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y.toLocaleString()}P`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:'Noto Sans KR',weight:'700'}}},
+        y:{beginAtZero:true,grid:{color:'#F0EBF9'},ticks:{font:{family:'Noto Sans KR'},callback:v=>v.toLocaleString()+'P'}}
+      }
+    }
+  });
+}
+
+// ── 랭킹 ─────────────────────────────────────────────────
+window.setRankThisMonth = function(){
+  const now=new Date();
+  document.getElementById('rank-month').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  renderRanking();
+};
+
+function renderRanking(){
+  const month=document.getElementById('rank-month').value;
+  const filtered=month?records.filter(r=>r.date.startsWith(month)):records;
+  const map={};
+  filtered.forEach(r=>{ map[r.name]=(map[r.name]||0)+r.pts; });
+  const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  const list=document.getElementById('ranking-list');
+  if(!sorted.length){ list.innerHTML='<div class="empty"><div class="empty-icon">🏆</div><div class="empty-text">해당 월의 기록이 없습니다</div></div>'; return; }
+  const medals=['top1','top2','top3'],icons=['🥇','🥈','🥉'];
+  list.innerHTML=sorted.map(([name,pts],i)=>`
+    <div class="rank-item">
+      <div class="rank-num ${medals[i]||''}">${i<3?icons[i]:i+1}</div>
+      <div class="rank-name">${name}</div>
+      <div class="rank-pts">${pts.toLocaleString()}P</div>
+    </div>`).join('');
+}
+
+// ── 학생 관리 ─────────────────────────────────────────────
+window.addStudent = async function(){
+  if(!isAdmin){ showAlert('student','관리자 모드에서만 가능합니다','error'); return; }
+  const name=document.getElementById('in-student').value.trim();
+  if(!name){ showAlert('student','이름을 입력해주세요','error'); return; }
+  if(students.includes(name)){ showAlert('student','이미 있는 학생입니다','error'); return; }
+  try {
+    await setDoc(doc(db,'students',name),{name, createdAt:Date.now()});
+    document.getElementById('in-student').value='';
+    showAlert('student',`${name} 학생이 추가되었습니다!`,'success');
+  } catch(e){ showAlert('student','저장 실패: '+e.message,'error'); }
+};
+
+window.deleteStudent = async function(name){
+  if(!isAdmin) return;
+  if(!confirm(`${name} 학생을 삭제할까요? 기록은 유지됩니다.`)) return;
+  try { await deleteDoc(doc(db,'students',name)); }
+  catch(e){ alert('삭제 실패: '+e.message); }
+};
+
+function renderStudents(){
+  const list=document.getElementById('student-list');
+  const empty=document.getElementById('student-empty');
+  if(!students.length){ empty.style.display='block'; list.innerHTML=''; return; }
+  empty.style.display='none';
+  list.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:10px">
+    ${students.map(s=>`
+      <div style="display:flex;align-items:center;gap:8px;background:var(--purple-bg);border-radius:20px;padding:8px 14px;">
+        <span style="font-weight:700;font-size:13px;color:var(--purple)">👤 ${s}</span>
+        ${isAdmin?`<button class="btn btn-danger btn-sm admin-only" onclick="deleteStudent('${s}')" style="border-radius:20px;padding:3px 10px">✕</button>`:''}
+      </div>`).join('')}
+  </div>`;
+}
+
+function updateNameSelect(){
+  const sel=document.getElementById('in-name');
+  sel.innerHTML='<option value="">-- 학생 선택 --</option>'+
+    students.map(s=>`<option value="${s}">${s}</option>`).join('');
+}
+
+// ── Alert ─────────────────────────────────────────────────
+function showAlert(id,msg,type){
+  const el=document.getElementById('alert-'+id);
+  el.textContent=msg; el.className=`alert alert-${type} show`;
+  setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// ── CSV ───────────────────────────────────────────────────
+window.exportCSV = function(){
+  if(!records.length){ alert('내보낼 기록이 없습니다'); return; }
+  const rows=[['날짜','이름','활동','세부내용','얼리버드','마일리지(P)']];
+  [...records].sort((a,b)=>a.date.localeCompare(b.date))
+    .forEach(r=>rows.push([r.date,r.name,r.activity,r.etcName||'',r.earlybird?'O':'',r.pts]));
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='고등부_마일리지.csv'; a.click();
+};
+
+// ── Firestore 실시간 리스너 ───────────────────────────────
+function startListeners(){
+  // 기록
+  onSnapshot(query(collection(db,'records'),orderBy('createdAt','desc')), snap=>{
+    records=snap.docs.map(d=>({_id:d.id,...d.data()}));
+    renderRecords();
+    // 현재 열린 탭에 따라 재렌더
+    if(document.getElementById('tab-summary').classList.contains('active')) renderSummary();
+    if(document.getElementById('tab-ranking').classList.contains('active')) renderRanking();
+  });
+
+  // 학생
+  onSnapshot(collection(db,'students'), snap=>{
+    students=snap.docs.map(d=>d.data().name).sort((a,b)=>a.localeCompare(b,'ko'));
+    renderStudents();
+    updateNameSelect();
+  });
+}
+
+// ── 초기화 ────────────────────────────────────────────────
+document.body.classList.add('readonly'); // 기본: 읽기 전용
+document.getElementById('in-date').value=new Date().toISOString().split('T')[0];
+
+const now=new Date();
+const thisMonth=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+document.getElementById('sel-month').value=thisMonth;
+document.getElementById('rank-month').value=thisMonth;
+
+startListeners();
+
+// 로딩 해제 (1초 후)
+setTimeout(()=>{
+  document.getElementById('loading-overlay').style.display='none';
+}, 1200);
+
+</script>
+</body>
+</html>
