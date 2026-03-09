@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>고등부 마일리지 — SkyHope</title>
-    <link rel="stylesheet" href="styles/main.css?v=20260310" />
+    <link rel="stylesheet" href="styles/main.css?v=20260312" />
     <!-- authState 전역 초기화 — 모든 모듈보다 먼저 실행 -->
     <script>
       window.authState = { isAdmin: false, isTeacher: false };
@@ -14,6 +14,11 @@
     <div id="loading-overlay">
       <div class="spinner"></div>
       <p>Firebase 연결 중...</p>
+    </div>
+
+    <!-- 학생 프로필 모달 -->
+    <div id="profile-modal">
+      <div id="profile-modal"></div>
     </div>
 
     <!-- 로그인 모달 -->
@@ -126,6 +131,9 @@
         </div>
         <div class="tab" onclick="window.app.showTab('students', this)">
           👥 학생 관리
+        </div>
+        <div class="tab" onclick="window.app.showTab('notice', this)">
+          📢 공지사항
         </div>
       </div>
     </nav>
@@ -468,20 +476,28 @@
       <!-- ══ 랭킹 ══ -->
       <div class="section" id="tab-ranking">
         <div class="card">
-          <div class="card-title">🏆 월별 랭킹</div>
-          <div class="month-bar">
-            <input
-              type="month"
-              id="rank-month"
-              class="month-input"
-              oninput="window.ranking.render()"
-            />
+          <div class="card-title" id="ranking-title">🏆 전체 누적 랭킹</div>
+          <div class="month-bar" style="margin-bottom: 16px">
             <button
               class="btn btn-sm btn-primary"
+              id="rank-btn-all"
+              onclick="window.ranking.setAll()"
+            >
+              🏅 전체 누적
+            </button>
+            <button
+              class="btn btn-sm btn-secondary"
+              id="rank-btn-month"
               onclick="window.ranking.setThisMonth()"
             >
               이번 달
             </button>
+            <input
+              type="month"
+              id="rank-month"
+              class="month-input"
+              oninput="window.ranking.onMonthChange()"
+            />
           </div>
           <div id="ranking-list"></div>
         </div>
@@ -567,15 +583,67 @@
           </div>
         </div>
       </div>
+
+      <!-- ══ 공지사항 ══ -->
+      <div class="section" id="tab-notice">
+        <div class="card admin-only" style="margin-bottom: 20px">
+          <div class="card-title">✏️ 공지 등록</div>
+          <div id="alert-notice" class="alert"></div>
+          <div class="form-group" style="margin-bottom: 12px">
+            <label>제목</label>
+            <input
+              type="text"
+              id="notice-title"
+              placeholder="공지 제목 입력"
+              onkeydown="
+                if (event.key === 'Enter')
+                  document.getElementById('notice-content').focus();
+              "
+            />
+          </div>
+          <div class="form-group" style="margin-bottom: 16px">
+            <label>내용</label>
+            <textarea
+              id="notice-content"
+              rows="4"
+              placeholder="공지 내용을 입력하세요"
+              style="
+                width: 100%;
+                padding: 10px 14px;
+                border: 1.5px solid var(--border);
+                border-radius: 10px;
+                font-size: 14px;
+                resize: vertical;
+                font-family: inherit;
+                background: var(--purple-bg);
+              "
+            ></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="window.notice.add()">
+            📢 공지 등록
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📋 공지 목록</div>
+          <div id="notice-list"></div>
+          <div id="notice-empty" class="empty" style="display: none">
+            <div class="empty-icon">📭</div>
+            <div class="empty-text">등록된 공지가 없습니다</div>
+          </div>
+        </div>
+      </div>
     </main>
 
-    <script type="module" src="scripts/firebase.js?v=20260310"></script>
-    <script type="module" src="scripts/utils.js?v=20260310"></script>
-    <script type="module" src="scripts/auth.js?v=20260310"></script>
-    <script type="module" src="scripts/students.js?v=20260310"></script>
-    <script type="module" src="scripts/records.js?v=20260310"></script>
-    <script type="module" src="scripts/summary.js?v=20260310"></script>
-    <script type="module" src="scripts/ranking.js?v=20260310"></script>
-    <script type="module" src="scripts/app.js?v=20260310"></script>
+    <script type="module" src="scripts/firebase.js?v=20260312"></script>
+    <script type="module" src="scripts/utils.js?v=20260312"></script>
+    <script type="module" src="scripts/auth.js?v=20260312"></script>
+    <script type="module" src="scripts/students.js?v=20260312"></script>
+    <script type="module" src="scripts/records.js?v=20260312"></script>
+    <script type="module" src="scripts/summary.js?v=20260312"></script>
+    <script type="module" src="scripts/ranking.js?v=20260312"></script>
+    <script type="module" src="scripts/profile.js?v=20260312"></script>
+    <script type="module" src="scripts/notice.js?v=20260312"></script>
+    <script type="module" src="scripts/app.js?v=20260312"></script>
   </body>
 </html>

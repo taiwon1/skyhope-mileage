@@ -183,7 +183,7 @@ function render() {
           .map(
             (s) => `
           <div class="student-chip">
-            <div class="student-chip-info">
+            <div class="student-chip-info" onclick="window.profile.open('${s.name}')" style="cursor:pointer">
               <span class="student-chip-name">👤 ${s.name}</span>
               <span class="student-chip-meta">${s.grade || "학년 미지정"}</span>
             </div>

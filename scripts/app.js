@@ -8,6 +8,7 @@
 
 import { startListener as startRecords } from "./records.js";
 import { startListener as startStudents } from "./students.js";
+import { startListener as startNotices } from "./notice.js";
 export { showAlert } from "./utils.js";
 
 // ── 탭 전환 ───────────────────────────────────────────────
@@ -23,6 +24,7 @@ function showTab(id, el) {
 
   if (id === "summary") window.summary.render();
   if (id === "ranking") window.ranking.render();
+  if (id === "notice") window.notice.render();
 }
 
 // ── 초기화 ────────────────────────────────────────────────
@@ -35,7 +37,6 @@ function init() {
   const thisMonth =
     now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
   document.getElementById("sel-month").value = thisMonth;
-  document.getElementById("rank-month").value = thisMonth;
 
   startRecords(() => {
     if (document.getElementById("tab-summary").classList.contains("active"))
@@ -45,6 +46,7 @@ function init() {
   });
 
   startStudents();
+  startNotices();
 
   setTimeout(() => {
     document.getElementById("loading-overlay").style.display = "none";
