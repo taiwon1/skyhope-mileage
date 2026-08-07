@@ -21,6 +21,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 import { showAlert } from "./utils.js";
+import { recordList } from "./records.js";
 
 /** 전체 학생 목록 (실시간) — [{ name, grade, teacher }] */
 export let studentList = [];
@@ -34,12 +35,17 @@ async function add() {
     showAlert("student", "관리자 모드에서만 가능합니다", "error");
     return;
   }
-  const name = document.getElementById("in-student").value.trim();
-  const grade = document.getElementById("in-grade").value;
+  const name    = document.getElementById("in-student").value.trim();
+  const gender  = document.getElementById("in-gender").value;
+  const grade   = document.getElementById("in-grade").value;
   const teacher = document.getElementById("in-teacher").value;
 
   if (!name) {
     showAlert("student", "이름을 입력해주세요", "error");
+    return;
+  }
+  if (!gender) {
+    showAlert("student", "성별을 선택해주세요", "error");
     return;
   }
   if (!grade) {
@@ -59,11 +65,13 @@ async function add() {
   try {
     await setDoc(doc(db, "students", name), {
       name,
+      gender,
       grade,
       teacher,
       createdAt: Date.now(),
     });
     document.getElementById("in-student").value = "";
+    document.getElementById("in-gender").value = "";
     document.getElementById("in-grade").value = "";
     document.getElementById("in-teacher").value = "";
     showAlert("student", `${name} 학생이 추가되었습니다!`, "success");
@@ -106,6 +114,7 @@ function openEditModal(name) {
 
   document.getElementById("edit-student-name").value = name;
   document.getElementById("edit-modal-name").textContent = `👤 ${name}`;
+  document.getElementById("edit-gender").value = stu.gender || "";
   document.getElementById("edit-grade").value = stu.grade || "";
   document.getElementById("edit-teacher").value = stu.teacher || "";
   document.getElementById("edit-error").style.display = "none";
@@ -119,8 +128,9 @@ function closeEditModal() {
 
 // ── 수정 저장 ─────────────────────────────────────────────
 async function saveEdit() {
-  const name = document.getElementById("edit-student-name").value;
-  const grade = document.getElementById("edit-grade").value;
+  const name    = document.getElementById("edit-student-name").value;
+  const gender  = document.getElementById("edit-gender").value;
+  const grade   = document.getElementById("edit-grade").value;
   const teacher = document.getElementById("edit-teacher").value;
 
   if (!grade || !teacher) {
@@ -130,7 +140,7 @@ async function saveEdit() {
   document.getElementById("edit-error").style.display = "none";
 
   try {
-    await updateDoc(doc(db, "students", name), { grade, teacher });
+    await updateDoc(doc(db, "students", name), { gender, grade, teacher });
     closeEditModal();
   } catch (e) {
     alert("수정 실패: " + e.message);
@@ -170,6 +180,19 @@ function render() {
     grouped[key].push(s);
   });
 
+  // 한 달 미출석 판단
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  const oneMonthAgoStr = oneMonthAgo.toISOString().split("T")[0];
+
+  const lastAttendMap = {};
+  recordList
+    .filter(r => r.activity === "주일예배 출석")
+    .forEach(r => {
+      if (!lastAttendMap[r.name] || r.date > lastAttendMap[r.name])
+        lastAttendMap[r.name] = r.date;
+    });
+
   list.innerHTML = Object.entries(grouped)
     .map(
       ([teacher, students]) => `
@@ -180,20 +203,25 @@ function render() {
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:10px">
         ${students
-          .map(
-            (s) => `
-          <div class="student-chip">
+          .map((s) => {
+            const lastDate = lastAttendMap[s.name];
+            const isAbsent = !lastDate || lastDate < oneMonthAgoStr;
+            const absentClass = isAbsent ? " chip-absent" : "";
+            const absentBadge = isAbsent
+              ? `<span class="absent-badge" title="${lastDate ? lastDate + " 마지막 출석" : "출석 기록 없음"}">💤</span>`
+              : "";
+            return `
+          <div class="student-chip${s.gender ? ` chip-${s.gender}` : ``}${absentClass}">
             <div class="student-chip-info" onclick="window.profile.open('${s.name}')" style="cursor:pointer">
-              <span class="student-chip-name">👤 ${s.name}</span>
+              <span class="student-chip-name">👤 ${s.name} ${absentBadge}</span>
               <span class="student-chip-meta">${s.grade || "학년 미지정"}</span>
             </div>
             <button class="btn btn-edit btn-sm admin-only"
               onclick="window.students.openEditModal('${s.name}')">✏️ 수정</button>
             <button class="btn btn-danger btn-sm admin-only"
               onclick="window.students.remove('${s.name}')">삭제</button>
-          </div>
-        `,
-          )
+          </div>`;
+          })
           .join("")}
       </div>
     </div>
@@ -245,6 +273,9 @@ export function startListener() {
 }
 
 // 전역 노출
+// 외부에서 재렌더 트리거 (records 업데이트 시)
+function rerender() { render(); }
+
 window.students = {
   add,
   remove,
@@ -252,4 +283,5 @@ window.students = {
   openEditModal,
   closeEditModal,
   saveEdit,
+  rerender,
 };

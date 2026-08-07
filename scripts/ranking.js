@@ -4,6 +4,7 @@
  */
 
 import { recordList } from "./records.js";
+import { studentList } from "./students.js";
 
 const MEDAL_CLASS = ["top1", "top2", "top3"];
 const MEDAL_ICON = ["🥇", "🥈", "🥉"];
@@ -78,19 +79,18 @@ function render() {
     return;
   }
 
-  list.innerHTML = sorted
-    .map(
-      ([name, pts], i) => `
+  list.innerHTML = sorted.map(([name, pts], i) => {
+    const stu = studentList.find(s => s.name === name) || {};
+    const nameColor = stu.gender === "남" ? "#2563eb" : stu.gender === "여" ? "#db2777" : "var(--purple)";
+    return `
     <div class="rank-item">
       <div class="rank-num ${MEDAL_CLASS[i] || ""}">
         ${i < 3 ? MEDAL_ICON[i] : i + 1}
       </div>
-      <div class="rank-name" onclick="window.profile.open('${name}')" style="cursor:pointer">${name}</div>
+      <span class="rank-name" onclick="window.profile.open('${name}')" style="color:${nameColor};cursor:pointer">${name}</span>
       <div class="rank-pts">${pts.toLocaleString()}P</div>
-    </div>
-  `,
-    )
-    .join("");
+    </div>`;
+  }).join("");
 }
 
 window.ranking = { render, setThisMonth, setAll, onMonthChange };

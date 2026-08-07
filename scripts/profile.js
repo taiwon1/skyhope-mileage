@@ -25,6 +25,27 @@ function open(name) {
 
   const totalPts = recs.reduce((s, r) => s + r.pts, 0);
 
+  // ── 올해 출석률 계산 ─────────────────────────────────────
+  // 올해 1월 1일부터 오늘까지 지난 주일 수
+  function countSundaysThisYear() {
+    const now   = new Date();
+    const start = new Date(now.getFullYear(), 0, 1); // 1월 1일
+    // 첫 번째 주일 찾기
+    const firstSun = new Date(start);
+    firstSun.setDate(start.getDate() + ((7 - start.getDay()) % 7));
+    let count = 0;
+    const cur = new Date(firstSun);
+    while (cur <= now) { count++; cur.setDate(cur.getDate() + 7); }
+    return Math.max(count, 1);
+  }
+
+  const totalSundays  = countSundaysThisYear();
+  const thisYear      = new Date().getFullYear().toString();
+  const attendedCount = recs.filter(r =>
+    r.activity === "주일예배 출석" && r.date.startsWith(thisYear)
+  ).length;
+  const attendPct = Math.round((attendedCount / totalSundays) * 100);
+
   // 월별 합산
   const byMonth = {};
   recs.forEach((r) => {
@@ -59,14 +80,26 @@ function open(name) {
         <div class="profile-avatar">${name[0]}</div>
         <div>
           <div class="profile-name">${name}</div>
-          <div class="profile-meta">
+          <div class="profile-meta" style="gap:6px;flex-wrap:wrap">
+            ${stu.gender ? `<span class="gender-badge gender-${stu.gender}">${stu.gender}</span>` : ""}
             <span class="badge" style="background:${gradeColor};color:#fff;font-size:11px">${stu.grade || "학년 미지정"}</span>
-            <span style="color:var(--gray);font-size:13px;margin-left:6px">${stu.teacher || ""}</span>
+            <span style="color:var(--gray);font-size:13px">${stu.teacher || ""}</span>
           </div>
         </div>
         <div class="profile-total">
           <div style="font-size:22px;font-weight:900;color:var(--purple)">${totalPts.toLocaleString()}P</div>
           <div style="font-size:11px;color:var(--gray)">누적 마일리지</div>
+        </div>
+      </div>
+      <!-- 올해 출석률 -->
+      <div class="profile-attend-wrap">
+        <div class="profile-attend-label">올해 주일 출석률</div>
+        <div class="profile-attend-bar-wrap">
+          <div class="profile-attend-bar" style="width:${attendPct}%"></div>
+        </div>
+        <div class="profile-attend-meta">
+          <span class="profile-attend-pct">${attendPct}%</span>
+          <span class="profile-attend-sub">${attendedCount}/${totalSundays}주</span>
         </div>
       </div>
 

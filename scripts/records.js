@@ -50,20 +50,121 @@ let filteredCache = [];
 // ── 활동 선택 변경 ────────────────────────────────────────
 function onActivityChange() {
   const v = document.getElementById("in-activity").value;
-  document.getElementById("extra-row").style.display =
-    v === "기타 활동" ? "flex" : "none";
-  document
-    .getElementById("earlybird-row")
-    .classList.toggle("show", v === "주일예배 출석");
-  if (v !== "주일예배 출석")
-    document.getElementById("cb-earlybird").checked = false;
+  const isAttend    = v === "주일예배 출석";
+  const isEtc       = v === "기타 활동";
+  const isNewcomer  = v === "새친구 전도";
+
+  // 기타 활동
+  document.getElementById("extra-row").style.display = isEtc ? "flex" : "none";
+
+  // 새친구 전도
+  document.getElementById("newcomer-row").style.display = isNewcomer ? "block" : "none";
+  if (isNewcomer) {
+    populateNewcomerSelects();
+  } else {
+    document.getElementById("in-newcomer-select").value = "";
+    document.getElementById("in-referrer-select").value = "";
+  }
+
+  // 주일예배 출석 — 분리 UI 전환
+  document.getElementById("student-checkbox-wrap").style.display = isAttend ? "none" : "block";
+  document.getElementById("attend-split-wrap").style.display     = isAttend ? "block" : "none";
+
+  if (isAttend) renderAttendSplit();
+}
+
+// ── 주일예배 출석 분리 렌더 ─────────────────────────────────
+function renderAttendSplit() {
+  const teacher = document.getElementById("in-filter-teacher").value;
+  const grade   = document.getElementById("in-filter-grade").value;
+
+  let filtered = studentList;
+  if (teacher) filtered = filtered.filter(s => s.teacher === teacher);
+  if (grade)   filtered = filtered.filter(s => s.grade   === grade);
+
+  const makeChips = (wrapId, name_prefix) => {
+    const wrap = document.getElementById(wrapId);
+    if (!filtered.length) {
+      wrap.innerHTML = `<span style="color:var(--text-sub);font-size:12px">해당 조건의 학생이 없습니다</span>`;
+      return;
+    }
+    wrap.innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+        <label class="stu-check-all">
+          <input type="checkbox" id="cb-all-${name_prefix}"
+            onchange="window.records.toggleAttendGroup('${name_prefix}', this.checked)" />
+          <span>전체 선택</span>
+        </label>
+        ${filtered.map(s => `
+          <label class="stu-check-item" id="chip-${name_prefix}-${s.name}">
+            <input type="checkbox" name="cb-${name_prefix}" value="${s.name}"
+              onchange="window.records.onAttendChipChange('${name_prefix}', '${s.name}', this.checked)" />
+            <span>${s.name}</span>
+          </label>`).join("")}
+      </div>`;
+  };
+
+  makeChips("earlybird-checkbox-wrap", "early");
+  makeChips("normal-checkbox-wrap",    "normal");
+}
+
+// ── 얼리버드 선택 시 일반에서 제외 (중복 방지) ───────────────
+function onAttendChipChange(group, name, checked) {
+  if (group === "early" && checked) {
+    // 얼리버드 체크 → 일반에서 같은 사람 체크 해제
+    const normalCb = document.querySelector(`input[name="cb-normal"][value="${name}"]`);
+    if (normalCb) normalCb.checked = false;
+  } else if (group === "normal" && checked) {
+    // 일반 체크 → 얼리버드에서 같은 사람 체크 해제
+    const earlyCb = document.querySelector(`input[name="cb-early"][value="${name}"]`);
+    if (earlyCb) earlyCb.checked = false;
+  }
+}
+
+function toggleAttendGroup(prefix, checked) {
+  document.querySelectorAll(`input[name="cb-${prefix}"]`).forEach(cb => {
+    cb.checked = checked;
+    // 얼리버드 전체 선택 시 일반 해제
+    if (prefix === "early" && checked) {
+      const normalCb = document.querySelector(`input[name="cb-normal"][value="${cb.value}"]`);
+      if (normalCb) normalCb.checked = false;
+    }
+  });
+}
+
+// ── 새친구/전도자 드롭다운 채우기 ──────────────────────────
+function populateNewcomerSelects() {
+  const newcomerSel  = document.getElementById("in-newcomer-select");
+  const referrerSel  = document.getElementById("in-referrer-select");
+  if (!newcomerSel || !referrerSel) return;
+
+  const opts = studentList.map(s => `<option value="${s.name}">${s.name} (${s.grade || "학년미지정"})</option>`).join("");
+  newcomerSel.innerHTML = '<option value="">-- 새친구 선택 --</option>' + opts;
+  referrerSel.innerHTML = '<option value="">-- 전도한 친구 선택 (선택사항) --</option>' + opts;
+}
+
+// ── 새친구 선택 시 전도자 드롭다운에서 같은 사람 제외 ──────
+function onNewcomerChange() {
+  const newcomerName = document.getElementById("in-newcomer-select").value;
+  const referrerSel  = document.getElementById("in-referrer-select");
+  if (!referrerSel) return;
+
+  const opts = studentList
+    .filter(s => s.name !== newcomerName)
+    .map(s => `<option value="${s.name}">${s.name} (${s.grade || "학년미지정"})</option>`).join("");
+  referrerSel.innerHTML = '<option value="">-- 전도한 친구 선택 (선택사항) --</option>' + opts;
 }
 
 // ── 입력폼 반 필터 변경 → 학생 체크박스 목록 갱신 ──────────
 function onInputClassChange() {
   const teacher = document.getElementById("in-filter-teacher").value;
-  const grade = document.getElementById("in-filter-grade").value;
-  renderStudentCheckboxes(teacher, grade);
+  const grade   = document.getElementById("in-filter-grade").value;
+  const v = document.getElementById("in-activity").value;
+  if (v === "주일예배 출석") {
+    renderAttendSplit();
+  } else {
+    renderStudentCheckboxes(teacher, grade);
+  }
 }
 
 // ── 학생 체크박스 목록 렌더 ───────────────────────────────
@@ -120,9 +221,7 @@ async function add() {
     return;
   }
 
-  let pts = POINTS[activity] || 0,
-    etcName = "",
-    earlybird = false;
+  let pts = POINTS[activity] || 0, etcName = "", earlybird = false;
 
   if (activity === "기타 활동") {
     etcName = document.getElementById("in-etc-name").value.trim();
@@ -132,9 +231,53 @@ async function add() {
       return;
     }
   }
+  // 새친구 전도 — 새친구 + 전도자 별도 처리
+  if (activity === "새친구 전도") {
+    const newcomerVal = document.getElementById("in-newcomer-select")?.value;
+    const referrerVal = document.getElementById("in-referrer-select")?.value;
+
+    if (!newcomerVal) {
+      showAlert("record", "새친구를 선택해주세요", "error");
+      return;
+    }
+
+    const date = document.getElementById("in-date").value;
+    const saves = [];
+
+    // 새친구 저장 (isNewcomer: true)
+    saves.push(addDoc(collection(db, "records"), {
+      date, name: newcomerVal, activity,
+      etcName: "", newcomerName: newcomerVal,
+      isNewcomer: true, pts: 1000,
+      earlybird: false, createdAt: Date.now(),
+    }));
+
+    // 전도한 친구 저장 (선택된 경우)
+    if (referrerVal) {
+      saves.push(addDoc(collection(db, "records"), {
+        date, name: referrerVal, activity,
+        etcName: "", newcomerName: newcomerVal,
+        isNewcomer: false, pts: 1000,
+        earlybird: false, createdAt: Date.now(),
+      }));
+    }
+
+    try {
+      await Promise.all(saves);
+      showAlert("record",
+        referrerVal
+          ? `🎉 ${newcomerVal} 새친구 환영! ${referrerVal}에게도 1000P 적립!`
+          : `🎉 ${newcomerVal} 새친구 환영! 1000P 적립!`,
+        "success");
+      document.getElementById("in-newcomer-select").value = "";
+      document.getElementById("in-referrer-select").value = "";
+      populateNewcomerSelects();
+    } catch (e) {
+      showAlert("record", "저장 실패: " + e.message, "error");
+    }
+    return; // 아래 일반 저장 로직 건너뜀
+  }
   if (activity === "주일예배 출석") {
-    earlybird = document.getElementById("cb-earlybird").checked;
-    if (earlybird) pts += 50;
   }
 
   // 체크된 학생 목록
@@ -157,13 +300,8 @@ async function add() {
     await Promise.all(
       names.map((name) =>
         addDoc(collection(db, "records"), {
-          date,
-          name,
-          activity,
-          etcName,
-          pts,
-          earlybird,
-          createdAt: Date.now(),
+          date, name, activity, etcName,
+          pts, earlybird, createdAt: Date.now(),
         }),
       ),
     );
@@ -186,7 +324,8 @@ async function add() {
       document.getElementById("in-name").value = "";
     document.getElementById("in-etc-name").value = "";
     document.getElementById("in-etc-pts").value = "";
-    document.getElementById("cb-earlybird").checked = false;
+    document.getElementById("in-newcomer-select").value = "";
+    document.getElementById("in-referrer-select").value = "";
   } catch (e) {
     showAlert("record", "저장 실패: " + e.message, "error");
   }
@@ -305,7 +444,7 @@ function renderTable(pageData) {
       detail = "🌅 얼리버드";
 
     const stu = studentList.find((s) => s.name === r.name) || {};
-    const meta = [stu.grade, stu.teacher].filter(Boolean).join(" · ");
+    const nameColor = stu.gender === "남" ? "#2563eb" : stu.gender === "여" ? "#db2777" : "var(--purple)";
 
     const delBtn = window.authState?.isAdmin
       ? `<td><button class="btn btn-danger btn-sm" onclick="window.records.remove('${r._id}')">삭제</button></td>`
@@ -314,9 +453,8 @@ function renderTable(pageData) {
     tbody.innerHTML += `
       <tr>
         <td class="date-cell"><span class="date-full">${r.date}</span><span class="date-short">${r.date.slice(5)}</span></td>
-        <td>
-          <strong>${r.name}</strong>
-          ${meta ? `<br/><span style="font-size:10px;color:var(--gray)">${meta}</span>` : ""}
+        <td onclick="window.profile.open('${r.name}')" style="cursor:pointer">
+          <strong style="color:${nameColor}">${r.name}</strong>
         </td>
         <td><span class="badge ${BADGE[r.activity] || "badge-purple"}">${r.activity}</span></td>
         <td>${detail}</td>
@@ -440,6 +578,9 @@ window.records = {
   add,
   remove,
   onActivityChange,
+  onNewcomerChange,
+  onAttendChipChange,
+  toggleAttendGroup,
   exportCSV,
   applyFilter,
   resetFilter,
