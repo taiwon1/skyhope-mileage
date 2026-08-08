@@ -164,8 +164,11 @@ nav.top-nav {
   display: none;
   position: fixed; bottom: 0; left: 0; right: 0;
   height: var(--tab-h); background: var(--white);
-  border-top: 1px solid var(--border); z-index: 200;
+  border-top: 1px solid var(--border); z-index: 9000;
   box-shadow: 0 -2px 16px rgba(107,79,160,0.08);
+  transform: translateZ(0); /* GPU 레이어 강제 — 잘림 방지 */
+  -webkit-transform: translateZ(0);
+  will-change: transform;
 }
 .bottom-nav-inner { display: flex; height: 100%; }
 .bottom-tab {
@@ -575,8 +578,8 @@ th.cum-col { background: #65a30d !important; }
    공지사항
 ══════════════════════════════════════════ */
 .notice-card { border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 12px; overflow: hidden; }
-.notice-card-header { background: var(--purple-bg); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.notice-card-title   { font-size: var(--text-base); font-weight: 800; color: var(--purple); }
+.notice-card-header { background: var(--purple-bg); padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+.notice-card-title   { font-size: var(--text-sm); font-weight: 800; color: var(--purple); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notice-date         { font-size: var(--text-xs); color: var(--text-sub); flex-shrink: 0; }
 .notice-card-content { padding: 14px 16px; font-size: var(--text-sm); color: var(--text); line-height: 1.7; white-space: pre-wrap; }
 

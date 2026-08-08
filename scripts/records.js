@@ -277,7 +277,32 @@ async function add() {
     }
     return; // 아래 일반 저장 로직 건너뜀
   }
+  // ── 주일예배 출석 — 얼리버드/일반 분리 처리 ──────────────
   if (activity === "주일예배 출석") {
+    const earlyNames  = [...document.querySelectorAll('input[name="cb-early"]:checked')].map(c => c.value);
+    const normalNames = [...document.querySelectorAll('input[name="cb-normal"]:checked')].map(c => c.value);
+
+    if (!earlyNames.length && !normalNames.length) {
+      showAlert("record", "학생을 한 명 이상 선택해주세요", "error"); return;
+    }
+    try {
+      await Promise.all([
+        ...earlyNames.map(name => addDoc(collection(db, "records"), {
+          date, name, activity, etcName: "", pts: 150, earlybird: true, createdAt: Date.now(),
+        })),
+        ...normalNames.map(name => addDoc(collection(db, "records"), {
+          date, name, activity, etcName: "", pts: 100, earlybird: false, createdAt: Date.now(),
+        })),
+      ]);
+      showAlert("record",
+        `출석 완료! 얼리버드 ${earlyNames.length}명(150P), 일반 ${normalNames.length}명(100P) 🎉`,
+        "success");
+      document.querySelectorAll('input[name="cb-early"], input[name="cb-normal"], #cb-all-early, #cb-all-normal')
+        .forEach(cb => cb.checked = false);
+    } catch (e) {
+      showAlert("record", "저장 실패: " + e.message, "error");
+    }
+    return;
   }
 
   // 체크된 학생 목록
@@ -369,14 +394,12 @@ function resetFilter() {
 
 function getNameSetByClass(fTeacher, fGrade) {
   if (!fTeacher && !fGrade) return null;
+  // studentList가 아직 로드 안 됐으면 필터 적용 안 함
+  if (!studentList.length) return null;
   return new Set(
     studentList
-      .filter(
-        (s) =>
-          (!fTeacher || s.teacher === fTeacher) &&
-          (!fGrade || s.grade === fGrade),
-      )
-      .map((s) => s.name),
+      .filter(s => (!fTeacher || s.teacher === fTeacher) && (!fGrade || s.grade === fGrade))
+      .map(s => s.name),
   );
 }
 
@@ -589,4 +612,5 @@ window.records = {
   toggleAll,
   refreshCheckboxes,
   resetToPage1,
+  get recordList() { return recordList; },
 };

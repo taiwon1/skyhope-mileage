@@ -19,7 +19,11 @@ import { showAlert } from "./utils.js";
 import { recordList } from "./records.js";
 import { studentList } from "./students.js";
 
-let noticeList = [];
+let noticeList = null;
+let newcomerPage = 1;
+let noticePage   = 1;
+const NEWCOMER_PAGE_SIZE = 10;
+const NOTICE_PAGE_SIZE   = 3;
 let hiddenNewcomers = new Set(); // records에서 숨긴 환영카드 _id 목록
 
 // ── 날짜 포맷 헬퍼 ────────────────────────────────────────
@@ -100,6 +104,7 @@ async function remove(id, source) {
 
 // ── 렌더링 ───────────────────────────────────────────────
 function render() {
+  if (noticeList === null) return; // 아직 로드 전
   const isAdmin  = window.authState?.isAdmin;
   const notices  = noticeList.filter(n => n.type !== "newface");
 
@@ -148,7 +153,17 @@ function render() {
       { bg: "linear-gradient(135deg,#f5f3ff,#ede9fe)", border: "#c4b5fd", nameColor: "#7c3aed", dateColor: "#6d28d9", msgColor: "#5b21b6", emoji: "🎈" },
     ];
 
-    nfWrap.innerHTML = allNewfaces.map((n, i) => {
+    // 페이지네이션
+    const nfTotal = allNewfaces.length;
+    const nfTotalPages = Math.max(1, Math.ceil(nfTotal / NEWCOMER_PAGE_SIZE));
+    if (newcomerPage > nfTotalPages) newcomerPage = nfTotalPages;
+    const nfSlice = allNewfaces.slice(
+      (newcomerPage - 1) * NEWCOMER_PAGE_SIZE,
+      newcomerPage * NEWCOMER_PAGE_SIZE
+    );
+
+    nfWrap.innerHTML = nfSlice.map((n, i) => {
+      const idx = (newcomerPage - 1) * NEWCOMER_PAGE_SIZE + i;
       const name    = n.newcomerName || n.title || "";
       const date    = n.recordDate || fmtDate(n.createdAt) || "";
       const stu     = studentList.find(s => s.name === name) || {};
@@ -158,8 +173,7 @@ function render() {
       const teacherTag = stu.teacher
         ? `<span class="newface-grade">${stu.teacher}</span>`
         : "";
-      const palette = PALETTES[i % PALETTES.length];
-      // 날짜 기반 시드로 일관된 랜덤 멘트 (같은 날짜면 항상 같은 멘트)
+      const palette = PALETTES[idx % PALETTES.length];
       const seed    = parseInt(date.replace(/-/g, ""), 10) + name.length;
       const greet   = GREETINGS[seed % GREETINGS.length](name);
       const canDel  = isAdmin && n._id;
@@ -179,6 +193,12 @@ function render() {
           onclick="window.notice.remove('${n._id}','${n.source || "notice"}')">숨기기</button>` : ""}
       </div>`;
     }).join("");
+
+    // 새친구 페이지네이션
+    const nfPagEl = document.getElementById("newface-pagination");
+    if (nfPagEl) {
+      nfPagEl.innerHTML = nfTotalPages > 1 ? renderPagination(newcomerPage, nfTotalPages, "newcomer") : "";
+    }
   }
 
   // 일반 공지 섹션
@@ -191,7 +211,15 @@ function render() {
     ntEmpty.style.display = "block";
   } else {
     ntEmpty.style.display = "none";
-    ntWrap.innerHTML = notices.map(n => `
+    const ntTotal = notices.length;
+    const ntTotalPages = Math.max(1, Math.ceil(ntTotal / NOTICE_PAGE_SIZE));
+    if (noticePage > ntTotalPages) noticePage = ntTotalPages;
+    const ntSlice = notices.slice(
+      (noticePage - 1) * NOTICE_PAGE_SIZE,
+      noticePage * NOTICE_PAGE_SIZE
+    );
+
+    ntWrap.innerHTML = ntSlice.map(n => `
       <div class="notice-card">
         <div class="notice-card-header">
           <div class="notice-card-title">📢 ${n.title}</div>
@@ -208,17 +236,40 @@ function render() {
 
 // ── Firestore 리스너 ──────────────────────────────────────
 export function startListener() {
-  // 숨김 목록 먼저 로드
-  onSnapshot(collection(db, "hiddenNewcomers"), snap => {
-    hiddenNewcomers = new Set(snap.docs.map(d => d.id));
-    render();
-  });
+  // hiddenNewcomers 리스너 — 에러 시 무시하고 계속 진행
+  try {
+    onSnapshot(collection(db, "hiddenNewcomers"), snap => {
+      hiddenNewcomers = new Set(snap.docs.map(d => d.id));
+      // notices도 이미 로드됐으면 함께 렌더
+      if (noticeList !== null) render();
+    }, () => { /* 컬렉션 없으면 무시 */ });
+  } catch(e) { /* Spark 플랜 권한 오류 무시 */ }
 
   const q = query(collection(db, "notices"), orderBy("createdAt", "desc"));
   onSnapshot(q, snap => {
     noticeList = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
     render();
   });
+}
+
+// ── 페이지네이션 HTML 생성 ───────────────────────────────────
+function renderPagination(cur, total, type) {
+  let html = `<button class="page-btn btn-sm" ${cur === 1 ? "disabled" : ""}
+    onclick="window.notice.goPage('${type}', ${cur - 1})">‹</button>`;
+  for (let p = 1; p <= total; p++) {
+    html += `<button class="page-btn btn-sm ${p === cur ? "active" : ""}"
+      onclick="window.notice.goPage('${type}', ${p})">${p}</button>`;
+  }
+  html += `<button class="page-btn btn-sm" ${cur === total ? "disabled" : ""}
+    onclick="window.notice.goPage('${type}', ${cur + 1})">›</button>`;
+  return html;
+}
+
+// ── 페이지 이동 ───────────────────────────────────────────
+function goPage(type, p) {
+  if (type === "newcomer") newcomerPage = p;
+  else noticePage = p;
+  render();
 }
 
 // ── 입력 탭 전환 ─────────────────────────────────────────
@@ -238,4 +289,4 @@ function initDate() {
   if (el && !el.value) el.value = new Date().toISOString().split("T")[0];
 }
 
-window.notice = { add, addNewcomer, remove, render, switchInputTab, initDate };
+window.notice = { add, addNewcomer, remove, render, switchInputTab, initDate, goPage };

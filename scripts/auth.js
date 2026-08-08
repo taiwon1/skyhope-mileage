@@ -56,9 +56,16 @@ function applyUI() {
 
   // 권한 변경 시 기록 목록 재렌더 (삭제 버튼 즉시 반영, 페이지 1로 리셋)
   setTimeout(() => {
-    if (window.records && window.records.resetToPage1) {
-      window.records.resetToPage1();
-    }
+    if (!window.records) return;
+    // 필터 요소들 값 초기화 (collapsed 포함)
+    ["rec-filter-month","rec-filter-teacher","rec-filter-grade",
+     "rec-filter-name","rec-filter-activity"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    const sort = document.getElementById("rec-sort");
+    if (sort) sort.value = "date-desc";
+    window.records.resetToPage1();
   }, 0);
 }
 

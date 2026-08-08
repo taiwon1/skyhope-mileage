@@ -21,7 +21,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 import { showAlert } from "./utils.js";
-import { recordList } from "./records.js";
 
 /** 전체 학생 목록 (실시간) — [{ name, grade, teacher }] */
 export let studentList = [];
@@ -186,7 +185,7 @@ function render() {
   const oneMonthAgoStr = oneMonthAgo.toISOString().split("T")[0];
 
   const lastAttendMap = {};
-  recordList
+  (window.records?.recordList || [])
     .filter(r => r.activity === "주일예배 출석")
     .forEach(r => {
       if (!lastAttendMap[r.name] || r.date > lastAttendMap[r.name])

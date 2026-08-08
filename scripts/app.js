@@ -55,20 +55,26 @@ function toggleFilter(targetId) {
 function init() {
   // 가장 최근 주일 자동 감지 (주일=0)
   // 오늘이 월~토면 지난 주일, 단 지난 주일로부터 7일 이내만 유지
+  // 로컬 날짜 포맷 (UTC 오프셋 문제 방지)
+  function toLocalDateStr(d) {
+    const y  = d.getFullYear();
+    const m  = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
+  }
   function getLastSunday() {
     const today = new Date();
     const day   = today.getDay(); // 0=일, 1=월 ... 6=토
-    const diff  = day === 0 ? 0 : day; // 오늘이 일요일이면 0, 아니면 day만큼 빼기
     const sun   = new Date(today);
-    sun.setDate(today.getDate() - diff);
+    sun.setDate(today.getDate() - day); // 항상 이번 주 일요일
     return sun;
   }
-  const lastSun = getLastSunday();
-  const today   = new Date();
+  const lastSun  = getLastSunday();
+  const today    = new Date();
   const diffDays = Math.floor((today - lastSun) / 86400000);
   // 주일로부터 7일 이내면 주일 날짜, 아니면 오늘
   const defaultDate = diffDays < 7 ? lastSun : today;
-  document.getElementById("in-date").value = defaultDate.toISOString().split("T")[0];
+  document.getElementById("in-date").value = toLocalDateStr(defaultDate);
 
   const now       = new Date();
   const thisMonth = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
