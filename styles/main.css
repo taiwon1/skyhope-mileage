@@ -877,3 +877,132 @@ th.cum-col { background: #65a30d !important; }
 .profile-attend-sub {
   font-size: var(--text-xs); color: var(--text-sub); font-weight: 600;
 }
+
+/* ══════════════════════════════════════════
+   출석 현황 대시보드
+══════════════════════════════════════════ */
+
+/* 전체 큰 카드 */
+.att-big-card {
+  background: linear-gradient(135deg, var(--purple) 0%, #9b7fd0 100%);
+  border-radius: var(--radius-sm); padding: 18px 20px; color: white;
+  margin-bottom: 16px;
+}
+.att-big-label { font-size: var(--text-xs); opacity: 0.85; margin-bottom: 8px; }
+.att-big-nums  { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+.att-big-count { font-size: 40px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
+.att-big-total { font-size: var(--text-md); opacity: 0.75; }
+.att-big-sub   { font-size: var(--text-xs); opacity: 0.7; margin-bottom: 10px; }
+
+/* 바 공통 */
+.att-bar-wrap {
+  height: 6px; background: rgba(255,255,255,0.25);
+  border-radius: 99px; overflow: hidden;
+}
+.att-bar { height: 100%; border-radius: 99px; background: white; transition: width 0.5s ease; }
+.att-big-card .att-bar-wrap { background: rgba(255,255,255,0.2); }
+
+/* 그룹 제목 */
+.att-group-title {
+  font-size: var(--text-xs); font-weight: 800; color: var(--text-sub);
+  text-transform: uppercase; letter-spacing: 0.6px;
+  margin: 14px 0 8px;
+}
+
+/* 카드 row */
+.att-cards-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.att-card {
+  flex: 1; min-width: 120px; border-radius: var(--radius-sm);
+  padding: 12px 14px; border: 1.5px solid var(--border);
+  cursor: pointer; transition: all 0.15s; background: white;
+}
+.att-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(107,79,160,0.12); }
+.att-card-label { font-size: var(--text-xs); font-weight: 800; margin-bottom: 6px; }
+.att-card-count {
+  font-size: 22px; font-weight: 900; color: var(--dark);
+  letter-spacing: -0.5px; margin-bottom: 8px; line-height: 1;
+}
+.att-card-total { font-size: 13px; font-weight: 500; color: var(--text-sub); }
+.att-card .att-bar-wrap { background: rgba(0,0,0,0.07); }
+
+/* 탭 */
+.att-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+.att-tab {
+  height: 32px; padding: 0 14px; border: 1.5px solid var(--border);
+  border-radius: 20px; background: white; font-family: inherit;
+  font-size: var(--text-xs); font-weight: 700; color: var(--text-sub);
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.att-tab:hover { border-color: var(--purple); color: var(--purple); }
+.att-tab.active { background: var(--purple); border-color: var(--purple); color: white; }
+
+/* 그래프 범례 버튼 */
+.att-legend { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.att-legend-btn {
+  height: 30px; padding: 0 12px; border: 1.5px solid var(--border);
+  border-radius: 20px; background: white; font-family: inherit;
+  font-size: var(--text-xs); font-weight: 700; color: var(--text-sub);
+  cursor: pointer; transition: all 0.15s; display: flex; align-items: center;
+}
+.att-legend-btn.active {
+  background: var(--c, var(--purple));
+  border-color: var(--c, var(--purple));
+  color: white;
+}
+.att-legend-btn.active span { background: white !important; }
+
+/* 모바일 */
+@media (max-width: 768px) {
+  .att-big-count { font-size: 32px; }
+  .att-cards-row { gap: 8px; }
+  .att-card { min-width: calc(50% - 4px); padding: 10px 12px; }
+  .att-card-count { font-size: 18px; }
+}
+
+/* 드릴다운 학생 목록 */
+.drill-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--border);
+}
+.drill-row:last-child { border-bottom: none; }
+.drill-name { font-size: var(--text-sm); font-weight: 700; width: 60px; flex-shrink: 0; }
+.drill-bar-wrap {
+  flex: 1; height: 8px; background: var(--purple-bg);
+  border-radius: 99px; overflow: hidden;
+}
+.drill-bar { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+.drill-stat { font-size: var(--text-xs); color: var(--text-sub); width: 80px; text-align: right; flex-shrink: 0; }
+.drill-pct  { font-weight: 800; color: var(--purple); margin-left: 4px; }
+
+/* 카드 active 상태 */
+.att-card.active {
+  border-width: 2px !important;
+  box-shadow: 0 4px 14px rgba(107,79,160,0.15);
+}
+.att-card-avg {
+  font-size: 11px; font-weight: 700; color: var(--text-sub);
+  margin-left: 6px;
+}
+
+/* ══════════════════════════════════════════
+   출석 현황 모달
+══════════════════════════════════════════ */
+#att-modal {
+  position: fixed; inset: 0;
+  background: rgba(20,16,36,0.6);
+  backdrop-filter: blur(8px);
+  display: none; align-items: center; justify-content: center;
+  z-index: 8500; padding: 20px;
+}
+#att-modal.show { display: flex; }
+.att-modal-box {
+  background: white; border-radius: var(--radius-lg);
+  width: 100%; max-width: 480px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+.att-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px; border-bottom: 1.5px solid var(--purple-bg);
+}
+#att-modal-body { padding: 16px 20px; }

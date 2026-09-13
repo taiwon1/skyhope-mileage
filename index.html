@@ -92,6 +92,7 @@
     <div class="tabs">
       <div class="tab active"  onclick="window.app.showTab('record',   this)">📝 활동 기록</div>
       <div class="tab"         onclick="window.app.showTab('summary',  this)">📊 월별 정산</div>
+      <div class="tab"         onclick="window.app.showTab('attend',   this)">📋 출석 현황</div>
       <div class="tab"         onclick="window.app.showTab('ranking',  this)">🏆 랭킹</div>
       <div class="tab"         onclick="window.app.showTab('students', this)">👥 학생 관리</div>
       <div class="tab"         onclick="window.app.showTab('notice',   this)">📢 공지사항</div>
@@ -557,6 +558,49 @@
 
     </div>
 
+    <!-- ══ 출석 현황 ══ -->
+    <div class="section" id="tab-attend">
+
+      <!-- 요약 카드 -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">📊 출석 현황</div>
+        <div id="att-summary"></div>
+      </div>
+
+      <!-- 월별 추이 그래프 -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">📈 월별 출석 추이
+          <span style="font-size:11px;font-weight:500;color:var(--text-sub)">(올해 전체)</span>
+        </div>
+        <div id="att-chart"></div>
+      </div>
+
+      <!-- 개인 조회 -->
+      <div class="card">
+        <div class="card-title">🔍 학생 개인 출석 조회</div>
+        <div class="form-group" style="margin-bottom:16px;max-width:280px">
+          <label>학생 선택</label>
+          <select id="att-person-select" onchange="window.attendance.showPersonChart(this.value)">
+            <option value="">-- 학생 선택 --</option>
+          </select>
+        </div>
+        <div id="att-person-chart"></div>
+      </div>
+
+    </div>
+
+    <!-- 출석 현황 상세 모달 -->
+    <div id="att-modal">
+      <div class="att-modal-box">
+        <div class="att-modal-header">
+          <span id="att-modal-title" style="font-size:16px;font-weight:900"></span>
+          <button onclick="window.attendance.closeModal()"
+            style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-sub);line-height:1">✕</button>
+        </div>
+        <div id="att-modal-body" style="max-height:60vh;overflow-y:auto"></div>
+      </div>
+    </div>
+
   </main>
 
   <!-- ══ 모바일 하단 탭바 ══ -->
@@ -567,6 +611,9 @@
       </button>
       <button class="bottom-tab" onclick="window.app.showTab('summary', this)" data-tab="summary">
         <span class="tab-icon">📊</span>월별 정산
+      </button>
+      <button class="bottom-tab" onclick="window.app.showTab('attend', this)" data-tab="attend">
+        <span class="tab-icon">📋</span>출석현황
       </button>
       <button class="bottom-tab" onclick="window.app.showTab('ranking', this)" data-tab="ranking">
         <span class="tab-icon">🏆</span>랭킹
@@ -589,6 +636,7 @@
   <script type="module" src="scripts/ranking.js?v=20260808"></script>
   <script type="module" src="scripts/profile.js?v=20260808"></script>
   <script type="module" src="scripts/notice.js?v=20260808"></script>
+  <script type="module" src="scripts/attendance.js?v=20260813"></script>
   <script type="module" src="scripts/app.js?v=20260808"></script>
 
 </body>

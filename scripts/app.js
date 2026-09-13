@@ -31,13 +31,14 @@ function showTab(id, el) {
   if (id === "summary") window.summary.render();
   if (id === "ranking") window.ranking.render();
   if (id === "notice")  { window.notice.render(); window.notice.initDate(); }
+  if (id === "attend")  { window.attendance.render(); window.attendance.renderPersonSearch(); }
 
   // 스크롤 맨 위로
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function tabIndex(id) {
-  return { record:1, summary:2, ranking:3, students:4, notice:5 }[id] || 1;
+  return { record:1, summary:2, attend:3, ranking:4, students:5, notice:6 }[id] || 1;
 }
 
 // ── 필터 접기/펼치기 ─────────────────────────────────────
@@ -87,6 +88,8 @@ function init() {
       window.ranking.render();
     if (document.getElementById("tab-notice").classList.contains("active"))
       window.notice.render();
+    if (document.getElementById("tab-attend")?.classList.contains("active"))
+      window.attendance.render();
     // records 업데이트 시 학생 칩 미출석 상태 갱신
     if (window.students && window.students.rerender)
       window.students.rerender();

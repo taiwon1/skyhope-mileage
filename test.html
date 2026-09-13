@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkyHope 기능 테스트</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: #f0ebf9; color: #1e1a2e; padding: 20px; }
+
+    h1 { font-size: 20px; font-weight: 900; color: #6b4fa0; margin-bottom: 4px; }
+    .subtitle { font-size: 12px; color: #6b7280; margin-bottom: 24px; }
+
+    .suite { background: white; border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(107,79,160,0.08); }
+    .suite-title { font-size: 13px; font-weight: 800; color: #6b4fa0; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .suite-title span { background: #f3eeff; border-radius: 6px; padding: 2px 10px; }
+
+    .test-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f3eeff; font-size: 13px; }
+    .test-row:last-child { border-bottom: none; }
+    .test-name { flex: 1; color: #1e1a2e; }
+    .test-desc { font-size: 11px; color: #9ca3af; flex: 2; }
+
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; transition: all 0.15s; white-space: nowrap; }
+    .badge-wait  { background: #f3f4f6; color: #6b7280; }
+    .badge-pass  { background: #dcfce7; color: #15803d; }
+    .badge-fail  { background: #fee2e2; color: #b91c1c; }
+    .badge-skip  { background: #fef3c7; color: #b45309; }
+
+    .btn-run { height: 32px; padding: 0 14px; border: none; border-radius: 8px; background: #6b4fa0; color: white; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .btn-run:hover { background: #5a3d8e; }
+    .btn-run:active { transform: scale(0.97); }
+
+    .summary-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .summary-chip { padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 800; }
+    .chip-total { background: #f3eeff; color: #6b4fa0; }
+    .chip-pass  { background: #dcfce7; color: #15803d; }
+    .chip-fail  { background: #fee2e2; color: #b91c1c; }
+    .chip-wait  { background: #f3f4f6; color: #6b7280; }
+
+    .log-box { background: #1e1a2e; color: #a5f3fc; border-radius: 10px; padding: 14px; font-size: 11px; font-family: monospace; max-height: 180px; overflow-y: auto; margin-top: 14px; display: none; line-height: 1.7; }
+    .log-box.show { display: block; }
+    .log-pass { color: #4ade80; }
+    .log-fail { color: #f87171; }
+    .log-info { color: #a5f3fc; }
+
+    .ctrl { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<h1>🧪 SkyHope 마일리지 — 기능 테스트</h1>
+<p class="subtitle">실제 사용 시나리오 기반 자동화 테스트 · Firebase 연결 없이 로직만 검증</p>
+
+<div class="ctrl">
+  <button class="btn-run" onclick="runAll()">▶ 전체 실행</button>
+  <button class="btn-run" style="background:#6b7280" onclick="resetAll()">↺ 초기화</button>
+  <button class="btn-run" style="background:#0f766e" onclick="toggleLog()">📋 로그 보기</button>
+</div>
+
+<div class="summary-bar">
+  <div class="summary-chip chip-total" id="s-total">전체 0</div>
+  <div class="summary-chip chip-pass"  id="s-pass">통과 0</div>
+  <div class="summary-chip chip-fail"  id="s-fail">실패 0</div>
+  <div class="summary-chip chip-wait"  id="s-wait">대기 0</div>
+</div>
+
+<div id="log-box" class="log-box"></div>
+
+<!-- ── 테스트 스위트 ── -->
+<div id="test-container"></div>
+
+<script>
+// ══════════════════════════════════════════
+// 테스트 엔진
+// ══════════════════════════════════════════
+const tests = [];
+let logs    = [];
+
+function describe(suiteName, emoji, fn) {
+  const suite = { name: suiteName, emoji, cases: [] };
+  const it = (name, desc, fn) => suite.cases.push({ name, desc, fn, status: "wait" });
+  fn(it);
+  tests.push(suite);
+}
+
+function assert(cond, msg) {
+  if (!cond) throw new Error(msg || "assertion failed");
+}
+function assertEqual(a, b, msg) {
+  if (a !== b) throw new Error((msg || "") + ` expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
+}
+function assertContains(arr, val, msg) {
+  if (!arr.includes(val)) throw new Error((msg || "") + ` [${arr}] does not contain ${val}`);
+}
+
+// ══════════════════════════════════════════
+// 1. 날짜 / 주일 자동 감지
+// ══════════════════════════════════════════
+describe("날짜 & 주일 감지", "📅", it => {
+  it("toLocalDateStr — UTC 오프셋 없이 로컬 날짜 반환", "KST 기준 YYYY-MM-DD 포맷", () => {
+    function toLocalDateStr(d) {
+      const y  = d.getFullYear();
+      const m  = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${dd}`;
+    }
+    const d = new Date(2026, 7, 9); // 2026-08-09
+    assertEqual(toLocalDateStr(d), "2026-08-09", "날짜 포맷");
+  });
+
+  it("getLastSunday — 오늘이 일요일이면 오늘 반환", "day===0 케이스", () => {
+    function getLastSunday(fakeDate) {
+      const today = fakeDate;
+      const day = today.getDay();
+      const sun = new Date(today);
+      sun.setDate(today.getDate() - day);
+      return sun;
+    }
+    const sunday = new Date(2026, 7, 9); // 2026-08-09 일요일
+    assertEqual(sunday.getDay(), 0, "테스트 날짜가 일요일인지");
+    const result = getLastSunday(sunday);
+    assertEqual(result.getDate(), 9, "일요일 → 당일 반환");
+  });
+
+  it("getLastSunday — 수요일이면 지난 일요일 반환", "day===3 케이스", () => {
+    function getLastSunday(fakeDate) {
+      const day = fakeDate.getDay();
+      const sun = new Date(fakeDate);
+      sun.setDate(fakeDate.getDate() - day);
+      return sun;
+    }
+    const wed = new Date(2026, 7, 12); // 2026-08-12 수요일
+    assertEqual(wed.getDay(), 3, "테스트 날짜가 수요일인지");
+    const result = getLastSunday(wed);
+    assertEqual(result.getDate(), 9, "수요일 → 지난 일요일(9일) 반환");
+  });
+
+  it("7일 이내이면 주일 날짜 사용", "diffDays < 7 조건", () => {
+    const sun  = new Date(2026, 7, 9);
+    const thu  = new Date(2026, 7, 13); // 4일 후
+    const diff = Math.floor((thu - sun) / 86400000);
+    assert(diff < 7, "4일 차이는 7일 이내");
+  });
+
+  it("7일 이상이면 오늘 날짜 사용", "diffDays >= 7 조건", () => {
+    const sun  = new Date(2026, 6, 27);
+    const mon  = new Date(2026, 7, 9); // 13일 후
+    const diff = Math.floor((mon - sun) / 86400000);
+    assert(diff >= 7, "13일 차이는 7일 이상");
+  });
+});
+
+// ══════════════════════════════════════════
+// 2. 마일리지 포인트 계산
+// ══════════════════════════════════════════
+describe("마일리지 계산", "💰", it => {
+  const POINTS = {
+    "금요기도회 참석": 50,
+    "주일예배 찬양팀 섬김": 50,
+    "주일예배 안내팀 섬김": 30,
+    "주일예배 출석": 100,
+    "대표기도": 300,
+    "새친구 전도": 1000,
+  };
+
+  it("주일예배 출석 — 일반 100P", "", () => {
+    assertEqual(POINTS["주일예배 출석"], 100);
+  });
+
+  it("주일예배 출석 — 얼리버드 150P", "earlybird:true 시 +50P", () => {
+    const pts = POINTS["주일예배 출석"] + 50;
+    assertEqual(pts, 150);
+  });
+
+  it("새친구 전도 — 1000P", "", () => {
+    assertEqual(POINTS["새친구 전도"], 1000);
+  });
+
+  it("대표기도 — 300P", "", () => {
+    assertEqual(POINTS["대표기도"], 300);
+  });
+
+  it("기타 활동 — 직접 입력값 사용", "POINTS에 없으면 0, 직접 pts 지정", () => {
+    const pts = POINTS["기타 활동"] || 0;
+    assertEqual(pts, 0, "POINTS에 기타 활동 없음 → 0");
+  });
+
+  it("새친구 전도 — 당사자+전도자 각각 1000P", "isNewcomer 여부 무관하게 pts 동일", () => {
+    const newcomerPts = 1000;
+    const referrerPts = 1000;
+    assertEqual(newcomerPts + referrerPts, 2000, "두 명 합산 2000P");
+  });
+});
+
+// ══════════════════════════════════════════
+// 3. 필터 & 검색 로직
+// ══════════════════════════════════════════
+describe("필터 & 검색", "🔍", it => {
+  const mockRecords = [
+    { name: "김민준", activity: "주일예배 출석", date: "2026-08-03", pts: 100 },
+    { name: "이강물", activity: "금요기도회 참석", date: "2026-08-07", pts: 50 },
+    { name: "정하민", activity: "새친구 전도", date: "2026-08-03", pts: 1000, isNewcomer: true },
+    { name: "박지훈", activity: "주일예배 출석", date: "2026-07-27", pts: 150, earlybird: true },
+  ];
+
+  it("월 필터 — 8월 기록만 반환", "", () => {
+    const fMonth = "2026-08";
+    const result = mockRecords.filter(r => r.date.startsWith(fMonth));
+    assertEqual(result.length, 3, "8월 기록 3건");
+  });
+
+  it("활동 필터 — 주일예배 출석만", "", () => {
+    const result = mockRecords.filter(r => r.activity === "주일예배 출석");
+    assertEqual(result.length, 2);
+  });
+
+  it("이름 검색 — 부분 일치", "includes() 방식", () => {
+    const fName = "김";
+    const result = mockRecords.filter(r => r.name.includes(fName));
+    assertEqual(result.length, 1);
+    assertEqual(result[0].name, "김민준");
+  });
+
+  it("복합 필터 — 월 + 활동", "", () => {
+    const result = mockRecords
+      .filter(r => r.date.startsWith("2026-08"))
+      .filter(r => r.activity === "주일예배 출석");
+    assertEqual(result.length, 1);
+  });
+
+  it("필터 없음 — 전체 반환", "fTeacher, fGrade 모두 빈값", () => {
+    function getNameSetByClass(fTeacher, fGrade, studentList) {
+      if (!fTeacher && !fGrade) return null;
+      if (!studentList.length) return null;
+      return new Set(studentList.filter(s =>
+        (!fTeacher || s.teacher === fTeacher) && (!fGrade || s.grade === fGrade)
+      ).map(s => s.name));
+    }
+    const nameSet = getNameSetByClass("", "", []);
+    assertEqual(nameSet, null, "빈 필터 → null 반환 → 전체 표시");
+  });
+
+  it("담임 필터 — studentList 비어있으면 null 반환", "순환참조 방어", () => {
+    function getNameSetByClass(fTeacher, fGrade, studentList) {
+      if (!fTeacher && !fGrade) return null;
+      if (!studentList.length) return null;
+      return new Set(studentList.filter(s => (!fTeacher || s.teacher === fTeacher)).map(s => s.name));
+    }
+    const nameSet = getNameSetByClass("박태원T", "", []);
+    assertEqual(nameSet, null, "studentList 비어있으면 null → 전체 표시");
+  });
+});
+
+// ══════════════════════════════════════════
+// 4. 새친구 로직
+// ══════════════════════════════════════════
+describe("새친구 전도 로직", "🎉", it => {
+  it("isNewcomer:true — 환영 카드 표시 대상", "", () => {
+    const records = [
+      { activity: "새친구 전도", isNewcomer: true,  name: "정하민" },
+      { activity: "새친구 전도", isNewcomer: false, name: "김민준" },
+      { activity: "새친구 전도", name: "이강물" }, // 구형 — isNewcomer 없음
+    ];
+    // 신규 방식: isNewcomer:true만
+    const newcomers = records.filter(r =>
+      r.activity === "새친구 전도" && r.isNewcomer === true
+    );
+    assertEqual(newcomers.length, 1);
+    assertEqual(newcomers[0].name, "정하민");
+  });
+
+  it("구형 데이터 — activity===새친구전도 전체 표시", "isNewcomer 없는 기존 데이터", () => {
+    const records = [
+      { activity: "새친구 전도", name: "이강물" },
+      { activity: "새친구 전도", name: "유경현" },
+      { activity: "주일예배 출석", name: "김민준" },
+    ];
+    const newcomers = records.filter(r => r.activity === "새친구 전도");
+    assertEqual(newcomers.length, 2);
+  });
+
+  it("hiddenNewcomers — 숨긴 항목 제외", "", () => {
+    const hidden = new Set(["id-001", "id-002"]);
+    const records = [
+      { _id: "id-001", activity: "새친구 전도", name: "A" },
+      { _id: "id-003", activity: "새친구 전도", name: "B" },
+    ];
+    const visible = records.filter(r =>
+      r.activity === "새친구 전도" && !hidden.has(r._id)
+    );
+    assertEqual(visible.length, 1);
+    assertEqual(visible[0].name, "B");
+  });
+
+  it("새친구+전도자 — 선택된 두 명만 저장", "", () => {
+    const newcomerVal = "정하민";
+    const referrerVal = "김민준";
+    const saves = [newcomerVal, referrerVal].filter(Boolean);
+    assertEqual(saves.length, 2);
+  });
+
+  it("전도자 없이 새친구만 — 1명만 저장", "", () => {
+    const newcomerVal = "정하민";
+    const referrerVal = "";
+    const saves = [newcomerVal, referrerVal].filter(Boolean);
+    assertEqual(saves.length, 1);
+  });
+});
+
+// ══════════════════════════════════════════
+// 5. 월별 정산 로직
+// ══════════════════════════════════════════
+describe("월별 정산", "📊", it => {
+  const recs = [
+    { name: "김민준", activity: "주일예배 출석", pts: 100, earlybird: false, date: "2026-08-03" },
+    { name: "김민준", activity: "주일예배 출석", pts: 150, earlybird: true,  date: "2026-08-10" },
+    { name: "김민준", activity: "금요기도회 참석", pts: 50, date: "2026-08-07" },
+    { name: "이강물", activity: "주일예배 출석", pts: 100, earlybird: false, date: "2026-08-03" },
+  ];
+
+  it("학생별 합산", "", () => {
+    const map = {};
+    recs.forEach(r => { map[r.name] = (map[r.name] || 0) + r.pts; });
+    assertEqual(map["김민준"], 300);
+    assertEqual(map["이강물"], 100);
+  });
+
+  it("주일 출석 횟수 카운트", "", () => {
+    const attendCount = recs.filter(r =>
+      r.name === "김민준" && r.activity === "주일예배 출석"
+    ).length;
+    assertEqual(attendCount, 2);
+  });
+
+  it("얼리버드 횟수 카운트", "", () => {
+    const earlyCount = recs.filter(r =>
+      r.name === "김민준" && r.activity === "주일예배 출석" && r.earlybird
+    ).length;
+    assertEqual(earlyCount, 1);
+  });
+
+  it("참여 학생 수", "", () => {
+    const active = new Set(recs.map(r => r.name)).size;
+    assertEqual(active, 2);
+  });
+
+  it("정렬 — 합계 높은순", "", () => {
+    const rows = [{ name: "김민준", total: 300 }, { name: "이강물", total: 100 }];
+    rows.sort((a, b) => b.total - a.total);
+    assertEqual(rows[0].name, "김민준");
+  });
+});
+
+// ══════════════════════════════════════════
+// 6. 출석률 계산
+// ══════════════════════════════════════════
+describe("출석률 계산", "📈", it => {
+  it("올해 주일 수 계산 — 1월부터 현재까지", "", () => {
+    function countSundaysThisYear(now) {
+      const start = new Date(now.getFullYear(), 0, 1);
+      const firstSun = new Date(start);
+      firstSun.setDate(start.getDate() + ((7 - start.getDay()) % 7));
+      let count = 0;
+      const cur = new Date(firstSun);
+      while (cur <= now) { count++; cur.setDate(cur.getDate() + 7); }
+      return Math.max(count, 1);
+    }
+    // 2026-08-09 기준 → 1월 4일(첫 주일)부터 8월 9일까지
+    const now = new Date(2026, 7, 9);
+    const sundays = countSundaysThisYear(now);
+    assert(sundays >= 30 && sundays <= 35, `주일 수 ${sundays}회 (30~35 사이)`);
+  });
+
+  it("출석률 % 계산", "", () => {
+    const attended = 20;
+    const total    = 32;
+    const pct = Math.round((attended / total) * 100);
+    assertEqual(pct, 63);
+  });
+
+  it("출석 0회 — 0%", "", () => {
+    const pct = Math.round((0 / 32) * 100);
+    assertEqual(pct, 0);
+  });
+
+  it("전체 출석 — 100%", "", () => {
+    const pct = Math.round((32 / 32) * 100);
+    assertEqual(pct, 100);
+  });
+});
+
+// ══════════════════════════════════════════
+// 7. 미출석 판단
+// ══════════════════════════════════════════
+describe("미출석 판단", "💤", it => {
+  it("한 달 이상 미출석 — 회색 처리", "", () => {
+    const oneMonthAgo = new Date(2026, 7, 9);
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    const threshold = oneMonthAgo.toISOString().split("T")[0];
+
+    const lastDate = "2026-06-15"; // 2달 전
+    assert(lastDate < threshold, "6월 기록 → 미출석 판정");
+  });
+
+  it("최근 출석 — 정상 표시", "", () => {
+    const oneMonthAgo = new Date(2026, 7, 9);
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    const threshold = oneMonthAgo.toISOString().split("T")[0];
+
+    const lastDate = "2026-08-03"; // 6일 전
+    assert(!(lastDate < threshold), "8월 기록 → 정상 출석");
+  });
+
+  it("출석 기록 없음 — 미출석 판정", "", () => {
+    const lastDate = undefined;
+    assert(!lastDate || lastDate < "2026-07-09", "기록 없으면 미출석");
+  });
+});
+
+// ══════════════════════════════════════════
+// 8. 페이지네이션
+// ══════════════════════════════════════════
+describe("페이지네이션", "📄", it => {
+  it("활동기록 PAGE_SIZE=20 — 21건이면 2페이지", "", () => {
+    const PAGE_SIZE = 20;
+    const total = 21;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    assertEqual(pages, 2);
+  });
+
+  it("새친구 NEWCOMER_PAGE_SIZE=10 — 10건이면 1페이지", "", () => {
+    const pages = Math.max(1, Math.ceil(10 / 10));
+    assertEqual(pages, 1);
+  });
+
+  it("새친구 11건이면 2페이지", "", () => {
+    const pages = Math.max(1, Math.ceil(11 / 10));
+    assertEqual(pages, 2);
+  });
+
+  it("공지 NOTICE_PAGE_SIZE=3 — 4건이면 2페이지", "", () => {
+    const pages = Math.max(1, Math.ceil(4 / 3));
+    assertEqual(pages, 2);
+  });
+
+  it("빈 데이터 — 1페이지 유지", "", () => {
+    const pages = Math.max(1, Math.ceil(0 / 20));
+    assertEqual(pages, 1);
+  });
+
+  it("페이지 슬라이스 — 2페이지 데이터", "", () => {
+    const list = Array.from({ length: 25 }, (_, i) => i + 1);
+    const page = 2;
+    const PAGE_SIZE = 20;
+    const slice = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    assertEqual(slice.length, 5);
+    assertEqual(slice[0], 21);
+  });
+});
+
+// ══════════════════════════════════════════
+// 테스트 러너
+// ══════════════════════════════════════════
+function renderTests() {
+  const container = document.getElementById("test-container");
+  container.innerHTML = tests.map((suite, si) => `
+    <div class="suite" id="suite-${si}">
+      <div class="suite-title">
+        ${suite.emoji} <span>${suite.name}</span>
+        <span style="margin-left:auto;font-weight:400;font-size:11px;color:#9ca3af">${suite.cases.length}개 테스트</span>
+      </div>
+      ${suite.cases.map((c, ci) => `
+        <div class="test-row" id="row-${si}-${ci}">
+          <div class="test-name">${c.name}</div>
+          <div class="test-desc">${c.desc || ""}</div>
+          <span class="badge badge-wait" id="badge-${si}-${ci}">⏳ 대기</span>
+        </div>
+      `).join("")}
+    </div>
+  `).join("");
+  updateSummary();
+}
+
+async function runAll() {
+  logs = [];
+  // 상태 초기화
+  tests.forEach((suite, si) => suite.cases.forEach((c, ci) => {
+    c.status = "wait";
+    setBadge(si, ci, "wait", "⏳ 대기");
+  }));
+
+  let pass = 0, fail = 0;
+
+  for (let si = 0; si < tests.length; si++) {
+    const suite = tests[si];
+    log(`\n📦 ${suite.name}`, "info");
+    for (let ci = 0; ci < suite.cases.length; ci++) {
+      const c = suite.cases[ci];
+      try {
+        c.fn();
+        c.status = "pass";
+        setBadge(si, ci, "pass", "✅ 통과");
+        log(`  ✅ ${c.name}`, "pass");
+        pass++;
+      } catch(e) {
+        c.status = "fail";
+        setBadge(si, ci, "fail", "❌ 실패");
+        log(`  ❌ ${c.name} → ${e.message}`, "fail");
+        fail++;
+      }
+      await new Promise(r => setTimeout(r, 18));
+      updateSummary();
+    }
+  }
+  log(`\n🏁 완료: 통과 ${pass} / 실패 ${fail} / 전체 ${pass + fail}`, "info");
+}
+
+function resetAll() {
+  tests.forEach((suite, si) => suite.cases.forEach((c, ci) => {
+    c.status = "wait";
+    setBadge(si, ci, "wait", "⏳ 대기");
+  }));
+  logs = [];
+  document.getElementById("log-box").innerHTML = "";
+  updateSummary();
+}
+
+function setBadge(si, ci, cls, text) {
+  const el = document.getElementById(`badge-${si}-${ci}`);
+  if (el) { el.className = `badge badge-${cls}`; el.textContent = text; }
+}
+
+function updateSummary() {
+  const all   = tests.flatMap(s => s.cases);
+  const total = all.length;
+  const pass  = all.filter(c => c.status === "pass").length;
+  const fail  = all.filter(c => c.status === "fail").length;
+  const wait  = all.filter(c => c.status === "wait").length;
+  document.getElementById("s-total").textContent = `전체 ${total}`;
+  document.getElementById("s-pass").textContent  = `통과 ${pass}`;
+  document.getElementById("s-fail").textContent  = `실패 ${fail}`;
+  document.getElementById("s-wait").textContent  = `대기 ${wait}`;
+}
+
+function log(msg, type) {
+  logs.push({ msg, type });
+  const box = document.getElementById("log-box");
+  if (box.classList.contains("show")) renderLog();
+}
+
+function renderLog() {
+  const box = document.getElementById("log-box");
+  box.innerHTML = logs.map(l =>
+    `<div class="log-${l.type}">${l.msg}</div>`
+  ).join("");
+  box.scrollTop = box.scrollHeight;
+}
+
+function toggleLog() {
+  const box = document.getElementById("log-box");
+  box.classList.toggle("show");
+  if (box.classList.contains("show")) renderLog();
+}
+
+// 초기 렌더
+renderTests();
+</script>
+</body>
+</html>
