@@ -1,4 +1,4 @@
-import { kstToday } from "./utils.js?v=20260915-1";
+import { kstToday } from "./utils.js?v=20260915-2";
 /**
  * students.js
  * 학생 명단 CRUD + 정보 수정 (학년·담임)
@@ -7,7 +7,7 @@ import { kstToday } from "./utils.js?v=20260915-1";
  *        → body.readonly 일 때 자동으로 숨김, 관리자 모드 전환 시 즉시 표시
  */
 
-import { db } from "./firebase.js?v=20260915-1";
+import { db } from "./firebase.js?v=20260915-2";
 import {
   collection,
   doc,
@@ -20,7 +20,7 @@ import {
   runTransaction,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-import { showAlert, toLocalDate, validName, listenerError } from "./utils.js?v=20260915-1";
+import { showAlert, toLocalDate, validName, listenerError } from "./utils.js?v=20260915-2";
 
 /** 전체 학생 목록 (실시간) — [{ name, grade, teacher }] */
 export let studentList = [];

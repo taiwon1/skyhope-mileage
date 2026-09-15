@@ -1,11 +1,11 @@
-import { kstToday } from "./utils.js?v=20260915-1";
+import { kstToday } from "./utils.js?v=20260915-2";
 /**
  * summary.js
  * 월별 마일리지 정산 — 합계만 노출, 클릭 시 항목 + 출석횟수 펼침
  */
 
-import { recordList } from "./records.js?v=20260915-1";
-import { studentList, getStudent } from "./students.js?v=20260915-1";
+import { recordList } from "./records.js?v=20260915-2";
+import { studentList, getStudent } from "./students.js?v=20260915-2";
 
 const ACTIVITY_KEYS = [
   { key: "attend", label: "주일출석" },

@@ -1,11 +1,11 @@
-import { kstToday } from "./utils.js?v=20260915-1";
+import { kstToday } from "./utils.js?v=20260915-2";
 /**
  * ranking.js
  * 마일리지 랭킹 — 기본: 전체 누적 / 선택: 월별
  */
 
-import { recordList } from "./records.js?v=20260915-1";
-import { studentList } from "./students.js?v=20260915-1";
+import { recordList } from "./records.js?v=20260915-2";
+import { studentList } from "./students.js?v=20260915-2";
 
 const MEDAL_CLASS = ["top1", "top2", "top3"];
 const MEDAL_ICON = ["🥇", "🥈", "🥉"];

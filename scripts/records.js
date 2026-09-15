@@ -4,7 +4,7 @@
  * [신규] 반별 학생 필터 입력폼 + 여러 명 한번에 등록 (체크박스)
  */
 
-import { db } from "./firebase.js?v=20260915-1";
+import { db } from "./firebase.js?v=20260915-2";
 import {
   collection,
   doc,
@@ -15,8 +15,8 @@ import {
   runTransaction,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-import { showAlert, validDate, activityId, escapeHTML, csvCell, listenerError } from "./utils.js?v=20260915-1";
-import { studentList } from "./students.js?v=20260915-1";
+import { showAlert, validDate, activityId, escapeHTML, csvCell, listenerError } from "./utils.js?v=20260915-2";
+import { studentList } from "./students.js?v=20260915-2";
 
 const POINTS = {
   "금요기도회 참석": 50,

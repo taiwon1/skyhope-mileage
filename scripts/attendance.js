@@ -1,10 +1,10 @@
-import { kstToday, attendanceRecords } from "./utils.js?v=20260915-1";
+import { kstToday, attendanceRecords } from "./utils.js?v=20260915-2";
 /**
  * attendance.js — 출석 현황 대시보드 v2
  */
 
-import { recordList } from "./records.js?v=20260915-1";
-import { studentList } from "./students.js?v=20260915-1";
+import { recordList } from "./records.js?v=20260915-2";
+import { studentList } from "./students.js?v=20260915-2";
 
 const TEACHERS      = ["박태원T", "김하늘T", "박선희T", "황인혁T"];
 const GRADES        = ["1학년", "2학년", "3학년"];
@@ -76,6 +76,7 @@ function getPersonYearData(name) {
 // 진입점
 // ══════════════════════════════════════════
 function render() {
+  if (!window.authState?.isAdmin && !window.authState?.isTeacher) return;
   renderSummaryCards();
   renderChart();
   renderPersonSearch();
@@ -161,6 +162,7 @@ function renderSummaryCards() {
 let modalSortKey = "pct"; // pct | name | grade
 
 function openModal(type, value) {
+  if (!window.authState?.isAdmin && !window.authState?.isTeacher) return;
   const isYearly = !selectedMonth;
   const ym       = selectedMonth || getNowMonth();
   const color    = type === "grade"
@@ -363,6 +365,7 @@ function renderPersonSearch() {
 }
 
 function showPersonChart(name) {
+  if (!window.authState?.isAdmin && !window.authState?.isTeacher) return;
   const el = document.getElementById("att-person-chart");
   if (!el) return;
   if (!name) { el.innerHTML = ""; return; }

@@ -21,6 +21,38 @@ const TEACHER_HASH =
 /** 전역 인증 상태 */
 window.authState = { isAdmin: false, isTeacher: false };
 
+const SESSION_KEY = 'skyhope.staff-session.v1';
+function storage(kind) { try { return window[kind]; } catch { return null; } }
+function clearSession() {
+  for (const kind of ['localStorage','sessionStorage']) {
+    try { storage(kind)?.removeItem(SESSION_KEY); } catch {}
+  }
+}
+function saveSession(role) {
+  clearSession();
+  const remember = document.getElementById('remember-login').checked;
+  const session = JSON.stringify({role, revision: role === 'admin' ? ADMIN_HASH : TEACHER_HASH});
+  try { storage(remember ? 'localStorage' : 'sessionStorage')?.setItem(SESSION_KEY, session); } catch {}
+}
+function restoreSession() {
+  let role = null;
+  for (const kind of ['localStorage','sessionStorage']) {
+    try {
+      const saved = JSON.parse(storage(kind)?.getItem(SESSION_KEY) || 'null');
+      if (saved && ((saved.role === 'admin' && saved.revision === ADMIN_HASH) ||
+        (saved.role === 'teacher' && saved.revision === TEACHER_HASH))) { role = saved.role; break; }
+    } catch {}
+  }
+  window.authState = {isAdmin: role === 'admin', isTeacher: role === 'teacher'};
+  applyUI();
+}
+window.addEventListener('storage', event => {
+  if (event.key === SESSION_KEY || event.key === null) {
+    try { storage('sessionStorage')?.removeItem(SESSION_KEY); } catch {}
+    restoreSession();
+  }
+});
+
 /** SHA-256 변환 */
 async function sha256(text) {
   const bytes = new TextEncoder().encode(text);
@@ -52,6 +84,11 @@ function applyUI() {
     btn.className = "mode-badge mode-readonly";
   }
 
+  if (!isAdmin && !isTeacher) {
+    document.getElementById('att-modal')?.classList.remove('show');
+    if (document.getElementById('tab-attend')?.classList.contains('active')) window.app?.showTab('record');
+  }
+
   // 권한 변경 시 기록 목록 재렌더 (삭제 버튼 즉시 반영, 페이지 1로 리셋)
   setTimeout(() => {
     if (!window.records) return;
@@ -72,6 +109,7 @@ function applyUI() {
 /** 헤더 배지 클릭 → 로그아웃 or 모달 열기 */
 async function toggleMode() {
   if (window.authState.isAdmin || window.authState.isTeacher) {
+    clearSession();
     window.authState.isAdmin = false;
     window.authState.isTeacher = false;
     applyUI();
@@ -91,11 +129,13 @@ async function tryLogin() {
   if (hash === ADMIN_HASH) {
     window.authState.isAdmin = true;
     window.authState.isTeacher = false;
+    saveSession('admin');
     applyUI();
     closeModal();
   } else if (hash === TEACHER_HASH) {
     window.authState.isAdmin = false;
     window.authState.isTeacher = true;
+    saveSession('teacher');
     applyUI();
     closeModal();
   } else {
@@ -113,3 +153,4 @@ function closeModal() {
 }
 
 window.auth = { toggleMode, tryLogin, closeModal };
+restoreSession();

@@ -1,17 +1,18 @@
-import { kstToday } from "./utils.js?v=20260915-1";
+import { kstToday } from "./utils.js?v=20260915-2";
 /**
  * app.js
  * 앱 진입점 — 탭 전환, 전체 초기화
  */
 
-import { startListener as startNewcomers } from "./newcomer.js?v=20260915-1";
-import { startListener as startRecords  } from "./records.js?v=20260915-1";
-import { startListener as startStudents } from "./students.js?v=20260915-1";
-import { startListener as startNotices  } from "./notice.js?v=20260915-1";
-export { showAlert } from "./utils.js?v=20260915-1";
+import { startListener as startNewcomers } from "./newcomer.js?v=20260915-2";
+import { startListener as startRecords  } from "./records.js?v=20260915-2";
+import { startListener as startStudents } from "./students.js?v=20260915-2";
+import { startListener as startNotices  } from "./notice.js?v=20260915-2";
+export { showAlert } from "./utils.js?v=20260915-2";
 
 // ── 탭 전환 ──────────────────────────────────────────────
 function showTab(id, el) {
+  if (id === "attend" && !window.authState?.isAdmin && !window.authState?.isTeacher) return;
   // 섹션
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
   document.getElementById("tab-" + id).classList.add("active");

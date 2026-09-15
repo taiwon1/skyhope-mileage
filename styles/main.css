@@ -1218,3 +1218,5 @@ th.cum-col { background: #65a30d !important; }
 @media (prefers-reduced-motion: reduce) {
   .stamp-open, .nc-grad-btn-inline { animation: none; }
 }
+
+body.readonly .staff-only { display: none !important; }
