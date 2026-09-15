@@ -13,10 +13,8 @@
  *   console.log([...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''));
  */
 
-// sky2026 → 관리자
 const ADMIN_HASH =
   "f4036a14c2845da3850ac6bc265ce3e01c1298398d367c1c8a356472651cd29e";
-// tc2026  → 선생님
 const TEACHER_HASH =
   "15bcefb5ecd24a4ded47db2e40ce12754c8226dda56939200d4fbaaf4575dec1";
 
@@ -66,6 +64,8 @@ function applyUI() {
     const sort = document.getElementById("rec-sort");
     if (sort) sort.value = "date-desc";
     window.records.resetToPage1();
+    window.newcomer?.render();
+    window.notice?.render();
   }, 0);
 }
 

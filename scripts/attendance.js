@@ -1,9 +1,10 @@
+import { kstToday, attendanceRecords } from "./utils.js?v=20260915-1";
 /**
  * attendance.js — 출석 현황 대시보드 v2
  */
 
-import { recordList } from "./records.js";
-import { studentList } from "./students.js";
+import { recordList } from "./records.js?v=20260915-1";
+import { studentList } from "./students.js?v=20260915-1";
 
 const TEACHERS      = ["박태원T", "김하늘T", "박선희T", "황인혁T"];
 const GRADES        = ["1학년", "2학년", "3학년"];
@@ -15,68 +16,49 @@ let selectedMonth = null; // null = 올해 전체 평균
 // ══════════════════════════════════════════
 // 헬퍼
 // ══════════════════════════════════════════
-function toLocalDate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
+
 
 function getNowMonth() {
-  const n = new Date();
+  const n = kstToday();
   return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}`;
 }
 
 function getMonthsThisYear() {
-  const n = new Date(), year = n.getFullYear(), cur = n.getMonth()+1;
+  const n = kstToday(), year = n.getFullYear(), cur = n.getMonth()+1;
   return Array.from({length: cur}, (_, i) => `${year}-${String(i+1).padStart(2,"0")}`);
 }
 
 // KST 기준 해당 월의 일요일 날짜 목록 (오늘까지)
 function getSundayDates(ym) {
   const [y, m] = ym.split("-").map(Number);
-  const today  = toLocalDate(new Date());
+  const today  = new Intl.DateTimeFormat("en-CA", {year:"numeric",month:"2-digit",day:"2-digit"}).format(kstToday());
   const dates  = [];
   const last   = new Date(y, m, 0).getDate();
   for (let day = 1; day <= last; day++) {
     const d   = new Date(y, m-1, day);
-    const str = toLocalDate(d);
+    const str = ym + "-" + String(day).padStart(2,"0");
     if (d.getDay() === 0 && str <= today) dates.push(str);
   }
   return dates;
 }
 
-// 특정 학생 집합의 특정 달 출석 인원 Set
-function getAttendedSet(ym, studs) {
+// 카드와 그래프가 공유하는 주일당 평균. 기록 없는 지난 주일도 분모에 포함합니다.
+function getPeriodStats(studs, months) {
+  const dates = new Set(months.flatMap(getSundayDates));
   const names = new Set(studs.map(s => s.name));
-  return new Set(
-    recordList
-      .filter(r => r.date.startsWith(ym) && r.activity === "주일예배 출석" && names.has(r.name))
-      .map(r => r.name)
-  );
-}
-
-// 올해 전체 기준 — 한 번이라도 출석한 사람 / 전체 주일 수
-function getYearStats(studs) {
-  const months  = getMonthsThisYear();
-  let totalSun  = 0;
-  let totalAtt  = 0;
-  const names   = new Set(studs.map(s => s.name));
-  months.forEach(ym => {
-    const suns = getSundayDates(ym).length;
-    totalSun  += suns;
-    recordList
-      .filter(r => r.date.startsWith(ym) && r.activity === "주일예배 출석" && names.has(r.name))
-      .forEach(r => totalAtt++);
-  });
-  const maxPossible = studs.length * totalSun;
-  const avg        = maxPossible ? (totalAtt / maxPossible * 100).toFixed(1) : "0";
-  // 주일당 평균 출석 인원 = totalAtt / 전체 주일 수
-  const avgPerson  = totalSun ? (totalAtt / totalSun).toFixed(1) : "0";
-  const thisMonthAtt = getAttendedSet(getNowMonth(), studs).size;
-  return { avg, avgPerson, totalSun, thisMonthAtt };
+  const totalAtt = attendanceRecords(recordList).filter(r => dates.has(r.date) && names.has(r.name)).length;
+  const totalSun = dates.size;
+  const maxPossible = names.size * totalSun;
+  return {
+    avg: maxPossible ? (totalAtt / maxPossible * 100).toFixed(1) : "0.0",
+    avgPerson: totalSun ? (totalAtt / totalSun).toFixed(1) : "0.0",
+    totalSun,
+  };
 }
 
 // 특정 달 학생별 출석 횟수
 function getPersonAttendCount(name, ym) {
-  return recordList.filter(r =>
+  return attendanceRecords(recordList).filter(r =>
     r.name === name && r.date.startsWith(ym) && r.activity === "주일예배 출석"
   ).length;
 }
@@ -110,20 +92,7 @@ function renderSummaryCards() {
 
   // 카드 데이터 계산
   function calcCard(studs) {
-    if (isYearly) {
-      return getYearStats(studs);
-    } else {
-      // 출석률 = 실제 출석 횟수 / (인원 × 주일 수) — 매주 다 나와야 100%
-      const names      = new Set(studs.map(s => s.name));
-      const monthRecs  = recordList.filter(r =>
-        r.date.startsWith(ym) && r.activity === "주일예배 출석" && names.has(r.name)
-      ).length;
-      const maxPossible = studs.length * sunCnt;
-      const avg         = maxPossible ? (monthRecs / maxPossible * 100).toFixed(1) : "0";
-      const avgPerson   = sunCnt ? (monthRecs / sunCnt).toFixed(1) : "0";
-      const att         = getAttendedSet(ym, studs); // 한 번이라도 나온 인원 (참고용)
-      return { avg, avgPerson, thisMonthAtt: att.size, totalSun: sunCnt };
-    }
+    return getPeriodStats(studs, isYearly ? getMonthsThisYear() : [ym]);
   }
 
   const all       = calcCard(studentList);
@@ -285,9 +254,9 @@ function renderModalContent() {
 
   const sortBtns = ["pct","name","grade"].map(k => `
     <button onclick="window.attendance.setModalSort('${k}')"
-      style="height:28px;padding:0 12px;border-radius:20px;border:1.5px solid ${modalSortKey===k?"var(--purple)":"var(--border)"};
+      style="min-height:44px;padding:0 14px;border-radius:20px;border:1.5px solid ${modalSortKey===k?"var(--purple)":"var(--border)"};
              background:${modalSortKey===k?"var(--purple)":"white"};color:${modalSortKey===k?"white":"var(--text-sub)"};
-             font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">
+             font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
       ${{pct:"출석률순",name:"이름순",grade:"학년순"}[k]}
     </button>`).join("");
 
@@ -317,10 +286,7 @@ function closeModal() {
 // ══════════════════════════════════════════
 function renderChart() {
   const months = getMonthsThisYear();
-  const data   = months.map(m => {
-    const att = getAttendedSet(m, studentList);
-    return att.size;
-  });
+  const data = months.map(m => Number(getPeriodStats(studentList, [m]).avgPerson));
 
   const W = 560, H = 180, PAD = { t: 28, r: 20, b: 36, l: 40 };
   const maxV  = Math.max(...data, 1);
@@ -349,7 +315,7 @@ function renderChart() {
         fill="${isSel ? "#6b4fa0" : "#9b7fd0"}" stroke="white" stroke-width="2"
         style="cursor:pointer" onclick="window.attendance.clickMonth('${p.m}')"/>
       <text x="${p.x}" y="${p.y-13}" text-anchor="middle" font-size="10"
-        fill="${isSel ? "#6b4fa0" : "#bbb"}" font-weight="${isSel ? "900" : "400"}">${p.v}명</text>`;
+        fill="${isSel ? "#6b4fa0" : "#bbb"}" font-weight="${isSel ? "900" : "400"}">${p.v.toFixed(1)}명</text>`;
   }).join("");
 
   const xLabels = pts.map(p => `
@@ -358,13 +324,20 @@ function renderChart() {
       font-weight="${selectedMonth === p.m ? "800" : "400"}"
       style="cursor:pointer" onclick="window.attendance.clickMonth('${p.m}')">${p.m.slice(5)}월</text>`).join("");
 
+  const monthButtons = '<div class="att-month-picker" role="group" aria-label="출석 조회 월 선택">'
+    + '<button type="button" class="att-month-button" aria-pressed="' + !selectedMonth
+    + '" onclick="window.attendance.clickMonth(null)">올해 전체</button>'
+    + months.map((month, i) => '<button type="button" class="att-month-button" aria-pressed="'
+      + (selectedMonth === month) + '" onclick="window.attendance.clickMonth(\'' + month + '\')">'
+      + '<strong>' + Number(month.slice(5)) + '월</strong><span>' + data[i].toFixed(1) + '명</span></button>').join('')
+    + '</div>';
   const hint = selectedMonth
     ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="font-size:11px;color:var(--purple);font-weight:700">📌 ${selectedMonth} 선택됨</span>
         <button onclick="window.attendance.clickMonth(null)"
-          style="font-size:10px;padding:2px 10px;border-radius:20px;border:1.5px solid var(--border);background:white;cursor:pointer;color:var(--text-sub)">전체 평균으로</button>
+          style="min-height:44px;font-size:13px;padding:2px 12px;border-radius:20px;border:1.5px solid var(--border);background:white;cursor:pointer;color:var(--text-sub)">전체 평균으로</button>
        </div>`
-    : `<div style="font-size:11px;color:var(--text-sub);margin-bottom:8px">달 클릭 → 월별 현황 · 다시 클릭 → 전체 평균</div>`;
+    : `<div class="att-chart-hint">아래 월 버튼을 누르면 월별 현황을 볼 수 있어요.</div>`;
 
   document.getElementById("att-chart").innerHTML = hint + `
     <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;overflow:visible">
@@ -373,7 +346,8 @@ function renderChart() {
       <polyline points="${polyline}" fill="none" stroke="#6b4fa0" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
       ${circles}
       ${xLabels}
-    </svg>`;
+    </svg>` + '<p class="att-chart-hint">인원은 해당 월의 주일당 평균 출석 인원입니다. 오늘까지의 주일을 기준으로 계산하며, 기록이 없는 주일은 0명으로 포함합니다.</p>' + monthButtons
+    + '<div class="att-month-status" role="status">' + (selectedMonth ? Number(selectedMonth.slice(5)) + '월 현황을 표시하고 있어요.' : '올해 전체 평균을 표시하고 있어요.') + '</div>';
 }
 
 // ══════════════════════════════════════════

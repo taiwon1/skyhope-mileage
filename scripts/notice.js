@@ -9,15 +9,15 @@
  *   recordDate   (새친구 — 활동기록 날짜, "YYYY-MM-DD")
  */
 
-import { db } from "./firebase.js";
+import { db } from "./firebase.js?v=20260915-1";
 import {
   collection, addDoc, deleteDoc, doc,
   onSnapshot, orderBy, query, serverTimestamp,
-  setDoc, getDoc,
+  setDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { showAlert } from "./utils.js";
-import { recordList } from "./records.js";
-import { studentList } from "./students.js";
+import { showAlert, escapeHTML, validName, validDate, toLocalDate, listenerError } from "./utils.js?v=20260915-1";
+import { recordList } from "./records.js?v=20260915-1";
+import { studentList } from "./students.js?v=20260915-1";
 
 let noticeList = null;
 let newcomerPage = 1;
@@ -25,6 +25,13 @@ let noticePage   = 1;
 const NEWCOMER_PAGE_SIZE = 10;
 const NOTICE_PAGE_SIZE   = 3;
 let hiddenNewcomers = new Set(); // records에서 숨긴 환영카드 _id 목록
+let hiddenLoaded = false;
+let saving = false;
+async function saveOnce(action) {
+  if (saving) return;
+  saving = true;
+  try { await action(); } finally { saving = false; }
+}
 
 // ── 날짜 포맷 헬퍼 ────────────────────────────────────────
 function fmtDate(ts) {
@@ -62,8 +69,8 @@ async function addNewcomer() {
   }
   const name = document.getElementById("newcomer-name").value.trim();
   const date = document.getElementById("newcomer-date").value;
-  if (!name) { showAlert("notice", "새친구 이름을 입력해주세요", "error"); return; }
-  if (!date) { showAlert("notice", "등록 날짜를 선택해주세요", "error"); return; }
+  if (!validName(name)) { showAlert("notice", "올바른 새친구 이름을 입력해주세요", "error"); return; }
+  if (!validDate(date)) { showAlert("notice", "오늘까지의 등록 날짜를 선택해주세요", "error"); return; }
 
   const content = `${name} 친구가 고등부 가족이 되었습니다! 따뜻하게 맞이해주세요 🎉`;
 
@@ -91,8 +98,8 @@ async function remove(id, source) {
   try {
     if (source === "record") {
       // records는 숨김 목록에 추가 (실제 삭제 안 함)
-      hiddenNewcomers.add(id);
       await setDoc(doc(db, "hiddenNewcomers", id), { hiddenAt: serverTimestamp() });
+      hiddenNewcomers.add(id);
     } else {
       await deleteDoc(doc(db, "notices", id));
     }
@@ -104,13 +111,13 @@ async function remove(id, source) {
 
 // ── 렌더링 ───────────────────────────────────────────────
 function render() {
-  if (noticeList === null) return; // 아직 로드 전
+  if (noticeList === null || !hiddenLoaded) return;
   const isAdmin  = window.authState?.isAdmin;
   const notices  = noticeList.filter(n => n.type !== "newface");
 
   // ── 새친구: records의 isNewcomer:true + notices의 "newface" 합산
   const fromRecords = recordList
-    .filter(r => r.activity === "새친구 전도" && !hiddenNewcomers.has(r._id))
+    .filter(r => r.activity === "새친구 전도" && r.isNewcomer === true && !r.graduationId && !hiddenNewcomers.has(r._id))
     .map(r => ({
       _id: r._id, source: "record",
       newcomerName: r.newcomerName || r.name,
@@ -133,6 +140,7 @@ function render() {
   if (!nfWrap) return;
 
   if (!allNewfaces.length) {
+    document.getElementById('newface-pagination').innerHTML = '';
     nfWrap.innerHTML  = "";
     nfEmpty.style.display = "block";
   } else {
@@ -175,7 +183,7 @@ function render() {
         : "";
       const palette = PALETTES[idx % PALETTES.length];
       const seed    = parseInt(date.replace(/-/g, ""), 10) + name.length;
-      const greet   = GREETINGS[seed % GREETINGS.length](name);
+      const greet   = GREETINGS[(Number.isFinite(seed) ? seed : 0) % GREETINGS.length](escapeHTML(name));
       const canDel  = isAdmin && n._id;
 
       return `
@@ -185,9 +193,9 @@ function render() {
       ">
         <div class="newface-balloon">${palette.emoji}</div>
         <div class="newface-info">
-          <div class="newface-name" style="color:${palette.nameColor}">${name} ${gradeTag}${teacherTag}</div>
+          <div class="newface-name" style="color:${palette.nameColor}">${escapeHTML(name)} ${gradeTag}${teacherTag}</div>
           <div class="newface-date" style="color:${palette.dateColor}">${date} 등록</div>
-          <div class="newface-msg"  style="color:${palette.msgColor}">${greet}</div>
+          <div class="newface-msg"  style="color:${palette.msgColor}">${n.content ? escapeHTML(n.content) : greet}</div>
         </div>
         ${canDel ? `<button class="btn btn-danger btn-sm admin-only"
           onclick="window.notice.remove('${n._id}','${n.source || "notice"}')">숨기기</button>` : ""}
@@ -207,6 +215,7 @@ function render() {
   if (!ntWrap) return;
 
   if (!notices.length) {
+    document.getElementById('notice-pagination').innerHTML = '';
     ntWrap.innerHTML = "";
     ntEmpty.style.display = "block";
   } else {
@@ -214,6 +223,7 @@ function render() {
     const ntTotal = notices.length;
     const ntTotalPages = Math.max(1, Math.ceil(ntTotal / NOTICE_PAGE_SIZE));
     if (noticePage > ntTotalPages) noticePage = ntTotalPages;
+    document.getElementById('notice-pagination').innerHTML = ntTotalPages > 1 ? renderPagination(noticePage, ntTotalPages, 'notice') : '';
     const ntSlice = notices.slice(
       (noticePage - 1) * NOTICE_PAGE_SIZE,
       noticePage * NOTICE_PAGE_SIZE
@@ -222,14 +232,14 @@ function render() {
     ntWrap.innerHTML = ntSlice.map(n => `
       <div class="notice-card">
         <div class="notice-card-header">
-          <div class="notice-card-title">📢 ${n.title}</div>
+          <div class="notice-card-title">📢 ${escapeHTML(n.title)}</div>
           <div style="display:flex;align-items:center;gap:8px">
             <span class="notice-date">${fmtDate(n.createdAt)}</span>
             ${isAdmin ? `<button class="btn btn-danger btn-sm admin-only"
               onclick="window.notice.remove('${n._id}')">삭제</button>` : ""}
           </div>
         </div>
-        <div class="notice-card-content">${n.content.replace(/\n/g, "<br>")}</div>
+        <div class="notice-card-content">${escapeHTML(n.content).replace(/\n/g, "<br>")}</div>
       </div>`).join("");
   }
 }
@@ -240,16 +250,17 @@ export function startListener() {
   try {
     onSnapshot(collection(db, "hiddenNewcomers"), snap => {
       hiddenNewcomers = new Set(snap.docs.map(d => d.id));
+      hiddenLoaded = true;
       // notices도 이미 로드됐으면 함께 렌더
       if (noticeList !== null) render();
-    }, () => { /* 컬렉션 없으면 무시 */ });
-  } catch(e) { /* Spark 플랜 권한 오류 무시 */ }
+    }, listenerError('환영 게시물 숨김 목록'));
+  } catch(e) { listenerError('환영 게시물 숨김 목록')(); }
 
   const q = query(collection(db, "notices"), orderBy("createdAt", "desc"));
   onSnapshot(q, snap => {
     noticeList = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
     render();
-  });
+  }, listenerError('공지사항'));
 }
 
 // ── 페이지네이션 HTML 생성 ───────────────────────────────────
@@ -286,7 +297,7 @@ function switchInputTab(tab) {
 // ── 탭 열릴 때 날짜 초기화 ───────────────────────────────
 function initDate() {
   const el = document.getElementById("newcomer-date");
-  if (el && !el.value) el.value = new Date().toISOString().split("T")[0];
+  if (el && !el.value) el.value = toLocalDate();
 }
 
-window.notice = { add, addNewcomer, remove, render, switchInputTab, initDate, goPage };
+window.notice = { add: () => saveOnce(add), addNewcomer: () => saveOnce(addNewcomer), remove, render, switchInputTab, initDate, goPage };

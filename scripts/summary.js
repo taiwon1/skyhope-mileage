@@ -1,10 +1,11 @@
+import { kstToday } from "./utils.js?v=20260915-1";
 /**
  * summary.js
  * 월별 마일리지 정산 — 합계만 노출, 클릭 시 항목 + 출석횟수 펼침
  */
 
-import { recordList } from "./records.js";
-import { studentList, getStudent } from "./students.js";
+import { recordList } from "./records.js?v=20260915-1";
+import { studentList, getStudent } from "./students.js?v=20260915-1";
 
 const ACTIVITY_KEYS = [
   { key: "attend", label: "주일출석" },
@@ -20,7 +21,7 @@ const ACTIVITY_KEYS = [
 let expandedRows = new Set();
 
 function setThisMonth() {
-  const now = new Date();
+  const now = kstToday();
   document.getElementById("sel-month").value =
     now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
   render();
@@ -33,8 +34,10 @@ function render() {
   const fName    = document.getElementById("sum-filter-name")?.value.trim() || "";
   const sortKey  = document.getElementById("sum-sort").value;
 
-  const monthRecs = month ? recordList.filter(r => r.date.startsWith(month)) : recordList;
-  const prevRecs  = month ? recordList.filter(r => r.date < month + "-01") : [];
+  const year = month ? month.slice(0,4) : String(kstToday().getFullYear());
+  const yearRecs = recordList.filter(r=>r.date.startsWith(year + '-'));
+  const monthRecs = month ? yearRecs.filter(r => r.date.startsWith(month)) : yearRecs;
+  const prevRecs  = month ? yearRecs.filter(r => r.date < month + "-01") : [];
 
   renderStatCards(monthRecs, studentList);
   renderTable(monthRecs, prevRecs, fTeacher, fGrade, fName, sortKey);

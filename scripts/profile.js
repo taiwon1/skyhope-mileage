@@ -1,10 +1,12 @@
+import { kstToday } from "./utils.js?v=20260915-1";
 /**
  * profile.js
  * 학생 프로필 모달 — 월별 추이 그래프 + 활동 이력
  */
 
-import { recordList } from "./records.js";
-import { studentList } from "./students.js";
+import { recordList } from "./records.js?v=20260915-1";
+import { studentList } from "./students.js?v=20260915-1";
+import { escapeHTML, attendanceRecords } from "./utils.js?v=20260915-1";
 
 const ACTIVITY_COLOR = {
   "주일예배 출석": "#7C3AED",
@@ -20,7 +22,7 @@ const ACTIVITY_COLOR = {
 function open(name) {
   const stu = studentList.find((s) => s.name === name) || {};
   const recs = recordList
-    .filter((r) => r.name === name)
+    .filter((r) => r.name === name && r.date.startsWith(String(kstToday().getFullYear()) + '-'))
     .sort((a, b) => b.date.localeCompare(a.date));
 
   const totalPts = recs.reduce((s, r) => s + r.pts, 0);
@@ -28,7 +30,7 @@ function open(name) {
   // ── 올해 출석률 계산 ─────────────────────────────────────
   // 올해 1월 1일부터 오늘까지 지난 주일 수
   function countSundaysThisYear() {
-    const now   = new Date();
+    const now   = kstToday();
     const start = new Date(now.getFullYear(), 0, 1); // 1월 1일
     // 첫 번째 주일 찾기
     const firstSun = new Date(start);
@@ -40,8 +42,8 @@ function open(name) {
   }
 
   const totalSundays  = countSundaysThisYear();
-  const thisYear      = new Date().getFullYear().toString();
-  const attendedCount = recs.filter(r =>
+  const thisYear      = kstToday().getFullYear().toString();
+  const attendedCount = attendanceRecords(recs).filter(r =>
     r.activity === "주일예배 출석" && r.date.startsWith(thisYear)
   ).length;
   const attendPct = Math.round((attendedCount / totalSundays) * 100);
@@ -88,7 +90,7 @@ function open(name) {
         </div>
         <div class="profile-total">
           <div style="font-size:22px;font-weight:900;color:var(--purple)">${totalPts.toLocaleString()}P</div>
-          <div style="font-size:11px;color:var(--gray)">누적 마일리지</div>
+          <div style="font-size:11px;color:var(--gray)">올해 누적 마일리지</div>
         </div>
       </div>
       <!-- 올해 출석률 -->
@@ -146,7 +148,7 @@ function open(name) {
                   <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
                     background:${color};margin-right:6px"></span>${r.activity}
                   ${r.earlybird ? '<span style="font-size:10px;color:#ca8a04">🌅</span>' : ""}
-                  ${r.etcName ? `<span style="font-size:11px;color:var(--gray)"> · ${r.etcName}</span>` : ""}
+                  ${r.etcName ? `<span style="font-size:11px;color:var(--gray)"> · ${escapeHTML(r.etcName)}</span>` : ""}
                 </div>
                 <div class="profile-history-pts" style="color:${color}">+${r.pts}P</div>
               </div>`;

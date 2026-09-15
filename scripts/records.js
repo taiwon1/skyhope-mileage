@@ -4,19 +4,19 @@
  * [신규] 반별 학생 필터 입력폼 + 여러 명 한번에 등록 (체크박스)
  */
 
-import { db } from "./firebase.js";
+import { db } from "./firebase.js?v=20260915-1";
 import {
   collection,
   doc,
-  addDoc,
   deleteDoc,
   onSnapshot,
   query,
   orderBy,
+  runTransaction,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-import { showAlert } from "./utils.js";
-import { studentList } from "./students.js";
+import { showAlert, validDate, activityId, escapeHTML, csvCell, listenerError } from "./utils.js?v=20260915-1";
+import { studentList } from "./students.js?v=20260915-1";
 
 const POINTS = {
   "금요기도회 참석": 50,
@@ -124,11 +124,7 @@ function onAttendChipChange(group, name, checked) {
 function toggleAttendGroup(prefix, checked) {
   document.querySelectorAll(`input[name="cb-${prefix}"]`).forEach(cb => {
     cb.checked = checked;
-    // 얼리버드 전체 선택 시 일반 해제
-    if (prefix === "early" && checked) {
-      const normalCb = document.querySelector(`input[name="cb-normal"][value="${cb.value}"]`);
-      if (normalCb) normalCb.checked = false;
-    }
+    onAttendChipChange(prefix, cb.value, checked);
   });
 }
 
@@ -207,153 +203,61 @@ function toggleAll(checked) {
 }
 
 // ── 기록 추가 (단일 or 다중) ─────────────────────────────
+let saving = false;
 async function add() {
-  if (!window.authState?.isAdmin && !window.authState?.isTeacher) {
-    showAlert("record", "관리자 모드에서만 가능합니다", "error");
-    return;
+  if (!window.authState?.isAdmin && !window.authState?.isTeacher) return;
+  if (saving) return;
+  const date = document.getElementById('in-date').value;
+  const activity = document.getElementById('in-activity').value;
+  if (!validDate(date) || (!POINTS[activity] && activity !== '기타 활동')) {
+    showAlert('record', '오늘까지의 올바른 날짜와 활동을 입력해주세요', 'error'); return;
   }
-
-  const date = document.getElementById("in-date").value;
-  const activity = document.getElementById("in-activity").value;
-
-  if (!date || !activity) {
-    showAlert("record", "날짜와 활동구분을 입력해주세요", "error");
-    return;
+  if (activity === '새친구 전도') {
+    showAlert('record', '새친구 전도 마일리지는 4주 출석 후 등반할 때 한 번만 자동 지급됩니다.', 'error'); return;
   }
-
-  let pts = POINTS[activity] || 0, etcName = "", earlybird = false;
-
-  if (activity === "기타 활동") {
-    etcName = document.getElementById("in-etc-name").value.trim();
-    pts = parseInt(document.getElementById("in-etc-pts").value) || 0;
-    if (!etcName || pts <= 0) {
-      showAlert("record", "기타 활동 내용과 점수를 입력해주세요", "error");
-      return;
+  if (activity === '주일예배 출석' && new Date(date + 'T12:00:00+09:00').getUTCDay() !== 0) {
+    showAlert('record', '주일예배 출석은 일요일 날짜를 선택해주세요', 'error'); return;
+  }
+  let pts = POINTS[activity], etcName = '';
+  if (activity === '기타 활동') {
+    etcName = document.getElementById('in-etc-name').value.trim();
+    pts = Number(document.getElementById('in-etc-pts').value);
+    if (!etcName || etcName.length > 100 || !Number.isSafeInteger(pts) || pts <= 0) {
+      showAlert('record', '기타 활동명(100자 이내)과 양의 정수 점수를 입력해주세요', 'error'); return;
     }
   }
-  // 새친구 전도 — 새친구 + 전도자 별도 처리
-  if (activity === "새친구 전도") {
-    const newcomerVal = document.getElementById("in-newcomer-select")?.value;
-    const referrerVal = document.getElementById("in-referrer-select")?.value;
-
-    if (!newcomerVal) {
-      showAlert("record", "새친구를 선택해주세요", "error");
-      return;
-    }
-
-    const date = document.getElementById("in-date").value;
-    const saves = [];
-
-    // 새친구 저장 (isNewcomer: true)
-    saves.push(addDoc(collection(db, "records"), {
-      date, name: newcomerVal, activity,
-      etcName: "", newcomerName: newcomerVal,
-      isNewcomer: true, pts: 1000,
-      earlybird: false, createdAt: Date.now(),
-    }));
-
-    // 전도한 친구 저장 (선택된 경우)
-    if (referrerVal) {
-      saves.push(addDoc(collection(db, "records"), {
-        date, name: referrerVal, activity,
-        etcName: "", newcomerName: newcomerVal,
-        isNewcomer: false, pts: 1000,
-        earlybird: false, createdAt: Date.now(),
-      }));
-    }
-
-    try {
-      await Promise.all(saves);
-      showAlert("record",
-        referrerVal
-          ? `🎉 ${newcomerVal} 새친구 환영! ${referrerVal}에게도 1000P 적립!`
-          : `🎉 ${newcomerVal} 새친구 환영! 1000P 적립!`,
-        "success");
-      document.getElementById("in-newcomer-select").value = "";
-      document.getElementById("in-referrer-select").value = "";
-      populateNewcomerSelects();
-    } catch (e) {
-      showAlert("record", "저장 실패: " + e.message, "error");
-    }
-    return; // 아래 일반 저장 로직 건너뜀
-  }
-  // ── 주일예배 출석 — 얼리버드/일반 분리 처리 ──────────────
-  if (activity === "주일예배 출석") {
-    const earlyNames  = [...document.querySelectorAll('input[name="cb-early"]:checked')].map(c => c.value);
-    const normalNames = [...document.querySelectorAll('input[name="cb-normal"]:checked')].map(c => c.value);
-
-    if (!earlyNames.length && !normalNames.length) {
-      showAlert("record", "학생을 한 명 이상 선택해주세요", "error"); return;
-    }
-    try {
-      await Promise.all([
-        ...earlyNames.map(name => addDoc(collection(db, "records"), {
-          date, name, activity, etcName: "", pts: 150, earlybird: true, createdAt: Date.now(),
-        })),
-        ...normalNames.map(name => addDoc(collection(db, "records"), {
-          date, name, activity, etcName: "", pts: 100, earlybird: false, createdAt: Date.now(),
-        })),
-      ]);
-      showAlert("record",
-        `출석 완료! 얼리버드 ${earlyNames.length}명(150P), 일반 ${normalNames.length}명(100P) 🎉`,
-        "success");
-      document.querySelectorAll('input[name="cb-early"], input[name="cb-normal"], #cb-all-early, #cb-all-normal')
-        .forEach(cb => cb.checked = false);
-    } catch (e) {
-      showAlert("record", "저장 실패: " + e.message, "error");
-    }
-    return;
-  }
-
-  // 체크된 학생 목록
-  const checked = [
-    ...document.querySelectorAll('input[name="stu-cb"]:checked'),
-  ].map((cb) => cb.value);
-
-  // 단일 선택(드롭다운) fallback
-  const singleName = document.getElementById("in-name")?.value || "";
-
-  const names = checked.length > 0 ? checked : singleName ? [singleName] : [];
-
-  if (names.length === 0) {
-    showAlert("record", "학생을 한 명 이상 선택해주세요", "error");
-    return;
-  }
-
+  const selected = selector => [...document.querySelectorAll(selector)].map(c=>c.value);
+  let entries;
+  if (activity === '주일예배 출석') {
+    const early = new Set(selected('input[name="cb-early"]:checked'));
+    const normal = selected('input[name="cb-normal"]:checked').filter(name=>!early.has(name));
+    entries = [...early].map(name=>({name, pts:150, earlybird:true}))
+      .concat(normal.map(name=>({name,pts:100,earlybird:false})));
+  } else entries = selected('input[name="stu-cb"]:checked').map(name=>({name,pts,earlybird:false}));
+  if (!entries.length) { showAlert('record', '학생을 한 명 이상 선택해주세요', 'error'); return; }
+  entries = entries.map(r=>({...r,date,activity,etcName,createdAt:Date.now()}));
+  saving = true;
   try {
-    // 병렬 저장
-    await Promise.all(
-      names.map((name) =>
-        addDoc(collection(db, "records"), {
-          date, name, activity, etcName,
-          pts, earlybird, createdAt: Date.now(),
-        }),
-      ),
-    );
-
-    showAlert(
-      "record",
-      names.length === 1
-        ? `${names[0]} 학생에게 ${pts}P 적립! 🎉`
-        : `${names.length}명에게 ${pts}P 적립 완료! 🎉`,
-      "success",
-    );
-
-    // 체크 해제
-    document
-      .querySelectorAll('input[name="stu-cb"], #cb-check-all')
-      .forEach((cb) => {
-        cb.checked = false;
+    const count = await runTransaction(db, async tx => {
+      // Deterministic IDs prevent duplicate writes across tabs; legacy records are also checked.
+      const refs = entries.map(r=>doc(db,'records',activityId(r)));
+      const saved = await Promise.all(refs.map(ref=>tx.get(ref)));
+      const students = await Promise.all(entries.map(r=>tx.get(doc(db,'students',r.name))));
+      if (!window.authState?.isAdmin && !window.authState?.isTeacher) throw Error('로그인 후 다시 시도해주세요');
+      let count = 0;
+      entries.forEach((r,i)=>{
+        if (!students[i].exists()) throw Error(r.name + ' 학생 정보를 새로고침해주세요');
+        const start = students[i].data().mileageStartDate;
+        if (start && r.date < start) throw Error(r.name + ' 학생은 등반일(' + start + ')부터 적립할 수 있습니다');
+        const duplicate = saved[i].exists() || recordList.some(old=>old.name===r.name && old.date===r.date && old.activity===r.activity && (old.etcName||'')===r.etcName);
+        if (!duplicate) { tx.set(refs[i],r); count++; }
       });
-    if (document.getElementById("in-name"))
-      document.getElementById("in-name").value = "";
-    document.getElementById("in-etc-name").value = "";
-    document.getElementById("in-etc-pts").value = "";
-    document.getElementById("in-newcomer-select").value = "";
-    document.getElementById("in-referrer-select").value = "";
-  } catch (e) {
-    showAlert("record", "저장 실패: " + e.message, "error");
-  }
+      return count;
+    });
+    showAlert('record', count + '건 적립 완료! 이미 등록된 활동은 중복 적립하지 않았습니다.', 'success');
+    document.querySelectorAll('#tab-record input[type="checkbox"]').forEach(cb=>cb.checked=false);
+  } catch(e) { showAlert('record', '저장 실패: ' + e.message, 'error'); }
+  finally { saving = false; }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -462,7 +366,7 @@ function renderTable(pageData) {
 
   pageData.forEach((r) => {
     let detail = "-";
-    if (r.activity === "기타 활동") detail = r.etcName;
+    if (r.activity === "기타 활동") detail = escapeHTML(r.etcName);
     else if (r.activity === "주일예배 출석" && r.earlybird)
       detail = "🌅 얼리버드";
 
@@ -531,7 +435,8 @@ function goPage(p) {
 }
 
 function exportCSV() {
-  const data = filteredCache.length ? filteredCache : recordList;
+  if (!window.authState?.isAdmin) return;
+  const data = filteredCache;
   if (!data.length) {
     alert("내보낼 기록이 없습니다");
     return;
@@ -565,7 +470,7 @@ function exportCSV() {
       ]);
     });
 
-  const csv = rows.map((r) => r.join(",")).join("\n");
+  const csv = rows.map((r) => r.map(csvCell).join(",")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -580,14 +485,14 @@ export function startListener(onUpdate) {
     recordList = snap.docs.map((d) => ({ _id: d.id, ...d.data() }));
     render();
     if (onUpdate) onUpdate();
-  });
+  }, listenerError("활동 기록"));
 }
 
 // ── 체크박스 새로고침 (학생 목록 변경 시 외부에서 호출) ──
 function refreshCheckboxes() {
-  const teacher = document.getElementById("in-filter-teacher")?.value || "";
-  const grade = document.getElementById("in-filter-grade")?.value || "";
-  renderStudentCheckboxes(teacher, grade);
+  const checked = [...document.querySelectorAll('#tab-record input[type="checkbox"]:checked')].map(c=>[c.name,c.value]);
+  onInputClassChange();
+  document.querySelectorAll('#tab-record input[type="checkbox"]').forEach(c=>{ c.checked = checked.some(([name,value])=>c.name===name&&c.value===value); });
 }
 
 // ── 권한 변경 시 1페이지로 리셋 후 재렌더 (auth.js에서 호출) ──

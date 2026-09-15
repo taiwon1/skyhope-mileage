@@ -1,10 +1,11 @@
+import { kstToday } from "./utils.js?v=20260915-1";
 /**
  * ranking.js
  * 마일리지 랭킹 — 기본: 전체 누적 / 선택: 월별
  */
 
-import { recordList } from "./records.js";
-import { studentList } from "./students.js";
+import { recordList } from "./records.js?v=20260915-1";
+import { studentList } from "./students.js?v=20260915-1";
 
 const MEDAL_CLASS = ["top1", "top2", "top3"];
 const MEDAL_ICON = ["🥇", "🥈", "🥉"];
@@ -18,7 +19,7 @@ function setAll() {
 
 // ── 이번 달로 설정 ────────────────────────────────────────
 function setThisMonth() {
-  const now = new Date();
+  const now = kstToday();
   document.getElementById("rank-month").value =
     now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
   updateModeBtn(true);
@@ -50,7 +51,7 @@ function render() {
   const month = document.getElementById("rank-month").value;
   const filtered = month
     ? recordList.filter((r) => r.date.startsWith(month))
-    : recordList;
+    : recordList.filter(r => r.date.startsWith(String(kstToday().getFullYear()) + '-'));
 
   const isMonthly = !!month;
 
@@ -68,7 +69,7 @@ function render() {
   if (title)
     title.textContent = isMonthly
       ? `🏆 ${month} 월별 랭킹`
-      : "🏆 전체 누적 랭킹";
+      : "🏆 올해 누적 랭킹";
 
   if (!sorted.length) {
     list.innerHTML = `

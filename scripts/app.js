@@ -1,12 +1,14 @@
+import { kstToday } from "./utils.js?v=20260915-1";
 /**
  * app.js
  * 앱 진입점 — 탭 전환, 전체 초기화
  */
 
-import { startListener as startRecords  } from "./records.js";
-import { startListener as startStudents } from "./students.js";
-import { startListener as startNotices  } from "./notice.js";
-export { showAlert } from "./utils.js";
+import { startListener as startNewcomers } from "./newcomer.js?v=20260915-1";
+import { startListener as startRecords  } from "./records.js?v=20260915-1";
+import { startListener as startStudents } from "./students.js?v=20260915-1";
+import { startListener as startNotices  } from "./notice.js?v=20260915-1";
+export { showAlert } from "./utils.js?v=20260915-1";
 
 // ── 탭 전환 ──────────────────────────────────────────────
 function showTab(id, el) {
@@ -20,6 +22,8 @@ function showTab(id, el) {
   // 모바일 하단 탭
   document.querySelectorAll(".bottom-tab").forEach(t => t.classList.remove("active"));
 
+  document.querySelector('.bottom-tab[data-tab="' + id + '"]')?.classList.add("active");
+
   // 클릭된 요소 활성화
   if (el) el.classList.add("active");
 
@@ -31,6 +35,7 @@ function showTab(id, el) {
   if (id === "summary") window.summary.render();
   if (id === "ranking") window.ranking.render();
   if (id === "notice")  { window.notice.render(); window.notice.initDate(); }
+  if (id === "newcomer") { window.newcomer.render?.(); window.newcomer.populateGuideSelect?.(); }
   if (id === "attend")  { window.attendance.render(); window.attendance.renderPersonSearch(); }
 
   // 스크롤 맨 위로
@@ -38,7 +43,7 @@ function showTab(id, el) {
 }
 
 function tabIndex(id) {
-  return { record:1, summary:2, attend:3, ranking:4, students:5, notice:6 }[id] || 1;
+  return { newcomer:1, record:2, summary:3, attend:4, ranking:5, students:6, notice:7 }[id] || 2;
 }
 
 // ── 필터 접기/펼치기 ─────────────────────────────────────
@@ -64,20 +69,20 @@ function init() {
     return `${y}-${m}-${dd}`;
   }
   function getLastSunday() {
-    const today = new Date();
+    const today = kstToday();
     const day   = today.getDay(); // 0=일, 1=월 ... 6=토
     const sun   = new Date(today);
     sun.setDate(today.getDate() - day); // 항상 이번 주 일요일
     return sun;
   }
   const lastSun  = getLastSunday();
-  const today    = new Date();
+  const today    = kstToday();
   const diffDays = Math.floor((today - lastSun) / 86400000);
   // 주일로부터 7일 이내면 주일 날짜, 아니면 오늘
   const defaultDate = diffDays < 7 ? lastSun : today;
   document.getElementById("in-date").value = toLocalDateStr(defaultDate);
 
-  const now       = new Date();
+  const now       = kstToday();
   const thisMonth = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
   document.getElementById("sel-month").value = thisMonth;
 
@@ -97,6 +102,7 @@ function init() {
 
   startStudents();
   startNotices();
+  startNewcomers();
 
   setTimeout(() => {
     document.getElementById("loading-overlay").style.display = "none";
