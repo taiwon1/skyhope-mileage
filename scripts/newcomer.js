@@ -4,15 +4,15 @@
  * tc + 읽기전용: 카드 조회만
  */
 
-import { db } from "./firebase.js?v=20260915-2";
+import { db } from "./firebase.js?v=20260917-1";
 import {
   collection, deleteDoc,
   doc, onSnapshot, orderBy, query, serverTimestamp, runTransaction,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { showAlert, validDate, validName, activityId, listenerError } from "./utils.js?v=20260915-2";
-import { studentList } from "./students.js?v=20260915-2";
+import { showAlert, validDate, validName, activityId, listenerError } from "./utils.js?v=20260917-1";
+import { studentList } from "./students.js?v=20260917-1";
 
-import { recordList } from "./records.js?v=20260915-2";
+import { recordList } from "./records.js?v=20260917-1";
 let newcomerList = [];
 let graduating = false;
 

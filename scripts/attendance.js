@@ -1,10 +1,10 @@
-import { kstToday, attendanceRecords } from "./utils.js?v=20260915-2";
+import { kstToday, attendanceRecords } from "./utils.js?v=20260917-1";
 /**
  * attendance.js — 출석 현황 대시보드 v2
  */
 
-import { recordList } from "./records.js?v=20260915-2";
-import { studentList } from "./students.js?v=20260915-2";
+import { recordList } from "./records.js?v=20260917-1";
+import { studentList } from "./students.js?v=20260917-1";
 
 const TEACHERS      = ["박태원T", "김하늘T", "박선희T", "황인혁T"];
 const GRADES        = ["1학년", "2학년", "3학년"];

@@ -1,11 +1,11 @@
-import { kstToday } from "./utils.js?v=20260915-2";
+import { kstToday } from "./utils.js?v=20260917-1";
 /**
  * summary.js
  * 월별 마일리지 정산 — 합계만 노출, 클릭 시 항목 + 출석횟수 펼침
  */
 
-import { recordList } from "./records.js?v=20260915-2";
-import { studentList, getStudent } from "./students.js?v=20260915-2";
+import { recordList } from "./records.js?v=20260917-1";
+import { studentList, getStudent } from "./students.js?v=20260917-1";
 
 const ACTIVITY_KEYS = [
   { key: "attend", label: "주일출석" },
@@ -124,7 +124,7 @@ function renderTable(monthRecs, prevRecs, fTeacher, fGrade, fName, sortKey) {
     tbody.innerHTML += `
       <tr class="sum-row ${isExpanded ? "expanded" : ""}"
           onclick="window.summary.toggleRow('${d.name}')" style="cursor:pointer">
-        <td style="text-align:left;padding-left:14px">
+        <td class="sum-name">
           <strong style="color:${nameColor}">${d.name}</strong>
         </td>
         <td><span class="badge ${GRADE_BADGE[d.grade] || "badge-purple"}" style="font-size:10px">${d.grade}</span></td>

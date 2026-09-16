@@ -9,15 +9,15 @@
  *   recordDate   (새친구 — 활동기록 날짜, "YYYY-MM-DD")
  */
 
-import { db } from "./firebase.js?v=20260915-2";
+import { db } from "./firebase.js?v=20260917-1";
 import {
   collection, addDoc, deleteDoc, doc,
   onSnapshot, orderBy, query, serverTimestamp,
   setDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { showAlert, escapeHTML, validName, validDate, toLocalDate, listenerError } from "./utils.js?v=20260915-2";
-import { recordList } from "./records.js?v=20260915-2";
-import { studentList } from "./students.js?v=20260915-2";
+import { showAlert, escapeHTML, validName, validDate, toLocalDate, listenerError } from "./utils.js?v=20260917-1";
+import { recordList } from "./records.js?v=20260917-1";
+import { studentList } from "./students.js?v=20260917-1";
 
 let noticeList = null;
 let newcomerPage = 1;
@@ -115,9 +115,17 @@ function render() {
   const isAdmin  = window.authState?.isAdmin;
   const notices  = noticeList.filter(n => n.type !== "newface");
 
-  // ── 새친구: records의 isNewcomer:true + notices의 "newface" 합산
+  // Legacy rewards predate isNewcomer. Infer using attendance known at reward creation,
+  // so later attendance backfills cannot erase an existing welcome card.
+  function isNewcomerReward(r) {
+    if (r.isNewcomer === true) return true;
+    if (r.isNewcomer === false) return false;
+    return !recordList.some(a => a.activity === '주일예배 출석' && a.name === r.name && a.date < r.date
+      && !(Number(a.createdAt) > Number(r.createdAt)));
+  }
+  // Explicit graduation notices take precedence over automatic legacy cards.
   const fromRecords = recordList
-    .filter(r => r.activity === "새친구 전도" && r.isNewcomer === true && !r.graduationId && !hiddenNewcomers.has(r._id))
+    .filter(r => r.activity === "새친구 전도" && isNewcomerReward(r) && !r.graduationId && !hiddenNewcomers.has(r._id))
     .map(r => ({
       _id: r._id, source: "record",
       newcomerName: r.newcomerName || r.name,
@@ -131,7 +139,13 @@ function render() {
     .map(n => ({ ...n, source: "notice" }));
 
   // 합산 후 날짜 내림차순
-  const allNewfaces = [...fromRecords, ...fromNotices]
+  const explicitNames = new Set(fromNotices.map(n => n.newcomerName || n.title));
+  const seenNames = new Set();
+  const legacyCards = fromRecords.sort((a,b) => a.recordDate.localeCompare(b.recordDate)).filter(n => {
+    if (explicitNames.has(n.newcomerName) || seenNames.has(n.newcomerName)) return false;
+    seenNames.add(n.newcomerName); return true;
+  });
+  const allNewfaces = [...legacyCards, ...fromNotices]
     .sort((a, b) => (b.recordDate || "").localeCompare(a.recordDate || ""));
 
   // 새친구 섹션

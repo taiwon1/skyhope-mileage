@@ -74,7 +74,7 @@ test('DB 읽기 실패 시 빈 화면 대신 오류 표시',async()=>{await page
 test('공지 연속 탭 중복 방지',async()=>{await role('admin');await fill({'notice-title':'연속 등록','notice-content':'한 번만 저장'});await page.evaluate(()=>Promise.all([window.notice.add(),window.notice.add()]));assert.equal(Object.values(await state('notices')).filter(n=>n.title==='연속 등록').length,1)});
 test('학생 501개 활동 일괄 삭제 및 실패 재시도',async()=>{await role('admin');await page.evaluate(()=>{window.__db.state.students['많은학생']={name:'많은학생',gender:'남',grade:'1학년',teacher:'박태원T'};for(let i=0;i<501;i++)window.__db.state.records['bulk-'+i]={name:'많은학생',date:'2026-09-06',activity:'기타 활동',etcName:String(i),pts:1,createdAt:i};window.__db.emit();window.__failNextWrite=true});await page.evaluate(()=>window.students.remove('많은학생'));assert.ok((await state('students'))['많은학생']);assert.equal(Object.values(await state('records')).filter(r=>r.name==='많은학생').length,501);await page.evaluate(()=>window.students.remove('많은학생'));assert.equal((await state('students'))['많은학생'],undefined);assert.equal(Object.values(await state('records')).filter(r=>r.name==='많은학생').length,0)});
 test('CSV 쉼표·따옴표·수식 문자열 처리',async()=>{await role('admin');await page.evaluate(()=>{window.__db.state.records.csv={name:'가학생',date:'2026-09-13',activity:'기타 활동',etcName:'=HYPERLINK("x"),내용',pts:20,createdAt:99};window.__db.emit()});await page.evaluate(()=>window.records.resetFilter());const downloadPromise=page.waitForEvent('download');await page.evaluate(()=>window.records.exportCSV());const download=await downloadPromise;const file=await download.path();const csv=fs.readFileSync(file,'utf8');assert.ok(csv.includes('"\'=HYPERLINK(""x""),내용"'))});
-test('해외 기기 시간대에서도 KST 연초 날짜와 올해 집계',async()=>{const context=await page.context().browser().newContext({timezoneId:'America/Los_Angeles'});try{await context.route('**/*',r=>r.request().url().startsWith(base)?r.continue():r.abort());const p=await context.newPage();await p.clock.install({time:new Date('2025-12-31T15:05:00Z')});await p.goto(base+'/test.html');const result=await p.evaluate(async()=>{const u=await import('/scripts/utils.js?v=20260915-2');return {today:u.toLocalDate(),year:u.kstToday().getFullYear(),month:u.kstToday().getMonth(),future:u.validDate('2026-01-02'),invalid:u.validDate('2026-02-30')}});assert.deepEqual(result,{today:'2026-01-01',year:2026,month:0,future:false,invalid:false})}finally{await context.close()}});
+test('해외 기기 시간대에서도 KST 연초 날짜와 올해 집계',async()=>{const context=await page.context().browser().newContext({timezoneId:'America/Los_Angeles'});try{await context.route('**/*',r=>r.request().url().startsWith(base)?r.continue():r.abort());const p=await context.newPage();await p.clock.install({time:new Date('2025-12-31T15:05:00Z')});await p.goto(base+'/test.html');const result=await p.evaluate(async()=>{const u=await import('/scripts/utils.js?v=20260917-1');return {today:u.toLocalDate(),year:u.kstToday().getFullYear(),month:u.kstToday().getMonth(),future:u.validDate('2026-01-02'),invalid:u.validDate('2026-02-30')}});assert.deepEqual(result,{today:'2026-01-01',year:2026,month:0,future:false,invalid:false})}finally{await context.close()}});
 
 test('월별 그래프·상단 카드 평균 일치 및 중복·평일·미래 제외', async()=>{
   const original = await state('records');
@@ -138,6 +138,28 @@ test('로그인 유지 미선택은 현재 탭에서만 복원',async()=>{
   const other=await page.context().newPage();await other.goto(base+'/index.html');
   await other.waitForFunction(()=>window.authState);assert.equal(await other.evaluate(()=>window.authState.isTeacher),false);await other.close();
   await role('readonly');
+});
+
+test('구형 새친구 자동 환영 복구: 인도자 제외·소급 출석 보완·명시 기록 우선',async()=>{
+  const original=await state('records'), notices=await state('notices');
+  try {
+    await page.evaluate(()=>{
+      window.__db.replace('notices',{});
+      window.__db.replace('records',{
+        newcomer:{name:'예전새친구',activity:'새친구 전도',date:'2026-06-14',pts:1000,createdAt:100},
+        backfill:{name:'예전새친구',activity:'주일예배 출석',date:'2026-06-07',pts:100,createdAt:200},
+        guide:{name:'기존인도자',activity:'새친구 전도',date:'2026-06-14',pts:1000,createdAt:100},
+        prior:{name:'기존인도자',activity:'주일예배 출석',date:'2026-06-07',pts:100,createdAt:50},
+        explicit:{name:'명시새친구',activity:'새친구 전도',date:'2026-06-14',pts:1000,createdAt:100,isNewcomer:true},
+        falseFlag:{name:'인도자표시',activity:'새친구 전도',date:'2026-06-14',pts:1000,createdAt:100,isNewcomer:false}
+      });
+    });await tab('notice');
+    assert.equal(await page.locator('#newface-list .newface-card').count(),2);
+    assert.match(await page.locator('#newface-list').innerText(),/예전새친구/);
+    assert.doesNotMatch(await page.locator('#newface-list').innerText(),/기존인도자|인도자표시/);
+    await page.evaluate(()=>window.__db.replace('notices',{welcome:{type:'newface',newcomerName:'예전새친구',recordDate:'2026-06-14',createdAt:100}}));
+    assert.equal(await page.locator('#newface-list .newface-card').count(),2);
+  } finally {await page.evaluate(r=>window.__db.replace('records',r),original);await page.evaluate(n=>window.__db.replace('notices',n),notices);}
 });
 
 (async()=>{

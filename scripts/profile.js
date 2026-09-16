@@ -1,12 +1,12 @@
-import { kstToday } from "./utils.js?v=20260915-2";
+import { kstToday } from "./utils.js?v=20260917-1";
 /**
  * profile.js
  * 학생 프로필 모달 — 월별 추이 그래프 + 활동 이력
  */
 
-import { recordList } from "./records.js?v=20260915-2";
-import { studentList } from "./students.js?v=20260915-2";
-import { escapeHTML, attendanceRecords } from "./utils.js?v=20260915-2";
+import { recordList } from "./records.js?v=20260917-1";
+import { studentList } from "./students.js?v=20260917-1";
+import { escapeHTML, attendanceRecords } from "./utils.js?v=20260917-1";
 
 const ACTIVITY_COLOR = {
   "주일예배 출석": "#7C3AED",

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>고등부 마일리지 — SkyHope</title>
-  <link rel="stylesheet" href="styles/main.css?v=20260915-2" />
+  <link rel="stylesheet" href="styles/main.css?v=20260917-1" />
   <script>window.authState = { isAdmin: false, isTeacher: false };</script>
 </head>
 <body class="readonly">
@@ -57,8 +57,8 @@
       <p>안내받은 교사·관리자 코드를 입력하세요</p>
       <input type="password" id="admin-pw-input" placeholder="안내받은 코드를 입력하세요" autocomplete="current-password"
         onkeydown="if(event.key==='Enter') window.auth.tryLogin()" />
-      <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px">
-        <input type="checkbox" id="remember-login" /> 이 기기에서 로그인 유지
+      <label class="login-remember">
+        <input type="checkbox" id="remember-login" /><span>이 기기에서 로그인 유지</span>
       </label>
       <div id="login-error">비밀번호가 틀렸습니다</div>
       <div class="modal-actions">
@@ -485,11 +485,11 @@
           <table id="summary-table">
             <thead>
               <tr>
-                <th style="text-align:left;padding-left:14px">이름</th>
+                <th>이름</th>
                 <th>학년</th>
                 <th>이번달</th>
                 <th>누적</th>
-                <th style="width:32px"></th>
+                <th aria-label="상세 내역"></th>
               </tr>
             </thead>
             <tbody id="summary-tbody"></tbody>
@@ -739,18 +739,18 @@
     </div>
   </nav>
 
-  <script type="module" src="scripts/firebase.js?v=20260915-2"></script>
-  <script type="module" src="scripts/utils.js?v=20260915-2"></script>
-  <script type="module" src="scripts/auth.js?v=20260915-2"></script>
-  <script type="module" src="scripts/students.js?v=20260915-2"></script>
-  <script type="module" src="scripts/records.js?v=20260915-2"></script>
-  <script type="module" src="scripts/summary.js?v=20260915-2"></script>
-  <script type="module" src="scripts/ranking.js?v=20260915-2"></script>
-  <script type="module" src="scripts/profile.js?v=20260915-2"></script>
-  <script type="module" src="scripts/notice.js?v=20260915-2"></script>
-  <script type="module" src="scripts/newcomer.js?v=20260915-2"></script>
-  <script type="module" src="scripts/attendance.js?v=20260915-2"></script>
-  <script type="module" src="scripts/app.js?v=20260915-2"></script>
+  <script type="module" src="scripts/firebase.js?v=20260917-1"></script>
+  <script type="module" src="scripts/utils.js?v=20260917-1"></script>
+  <script type="module" src="scripts/auth.js?v=20260917-1"></script>
+  <script type="module" src="scripts/students.js?v=20260917-1"></script>
+  <script type="module" src="scripts/records.js?v=20260917-1"></script>
+  <script type="module" src="scripts/summary.js?v=20260917-1"></script>
+  <script type="module" src="scripts/ranking.js?v=20260917-1"></script>
+  <script type="module" src="scripts/profile.js?v=20260917-1"></script>
+  <script type="module" src="scripts/notice.js?v=20260917-1"></script>
+  <script type="module" src="scripts/newcomer.js?v=20260917-1"></script>
+  <script type="module" src="scripts/attendance.js?v=20260917-1"></script>
+  <script type="module" src="scripts/app.js?v=20260917-1"></script>
 
 </body>
 </html>
