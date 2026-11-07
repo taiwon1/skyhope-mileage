@@ -1256,3 +1256,32 @@ body.readonly .staff-only { display: none !important; }
 .save-status.success { background: #ecfdf5; color: #166534; }
 .save-status.error { background: #fff1f2; color: #9f1239; }
 #record-save-button:disabled { opacity: .7; cursor: wait; }
+
+/* Keep navigation above the home gesture area without consuming tall screens. */
+@media (max-width: 768px) {
+  :root {
+    --mobile-nav-height: clamp(64px, 9svh, 72px);
+    --mobile-nav-gap: clamp(12px, 2.5svh, 24px);
+    --mobile-nav-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--mobile-nav-gap));
+  }
+  .bottom-nav {
+    left: max(8px, env(safe-area-inset-left, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    bottom: var(--mobile-nav-bottom);
+    height: var(--mobile-nav-height);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 6px 26px rgba(62, 38, 104, .18);
+    overflow: hidden;
+  }
+  .bottom-nav-inner { overflow-x: auto; }
+  .bottom-tab { min-width: 44px; min-height: 44px; font-size: 10px; padding: 8px 2px; }
+  .bottom-tab .tab-icon { font-size: 23px; }
+  main { padding-bottom: calc(var(--mobile-nav-height) + var(--mobile-nav-bottom) + 24px); }
+  html { scroll-padding-bottom: calc(var(--mobile-nav-height) + var(--mobile-nav-bottom) + 24px); }
+}
+@media (max-width: 768px) and (max-height: 500px) {
+  :root { --mobile-nav-height: 56px; --mobile-nav-gap: 8px; }
+  .bottom-tab { padding: 4px 2px; }
+  .bottom-tab .tab-icon { font-size: 20px; }
+}
