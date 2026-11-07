@@ -89,6 +89,12 @@ function applyUI() {
     if (document.getElementById('tab-attend')?.classList.contains('active')) window.app?.showTab('record');
   }
 
+  if (!isAdmin) {
+    if (['summary','ranking'].some(id => document.getElementById('tab-'+id)?.classList.contains('active'))) window.app?.showTab('record');
+    window.profile?.close();
+    document.getElementById('profile-modal').innerHTML = '';
+    for (const id of ['summary-tbody','stat-grid','ranking-list']) document.getElementById(id)?.replaceChildren();
+  }
   // 권한 변경 시 기록 목록 재렌더 (삭제 버튼 즉시 반영, 페이지 1로 리셋)
   setTimeout(() => {
     if (!window.records) return;

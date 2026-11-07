@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>고등부 마일리지 — SkyHope</title>
-  <link rel="stylesheet" href="styles/main.css?v=20260917-1" />
+  <link rel="stylesheet" href="styles/main.css?v=20261107-1" />
   <script>window.authState = { isAdmin: false, isTeacher: false };</script>
 </head>
 <body class="readonly">
@@ -128,9 +128,9 @@
     <div class="tabs">
       <div class="tab"         onclick="window.app.showTab('newcomer', this)">🌱 등반 기록</div>
       <div class="tab active"  onclick="window.app.showTab('record',   this)">📝 활동 기록</div>
-      <div class="tab"         onclick="window.app.showTab('summary',  this)">📊 월별 정산</div>
+      <div class="tab admin-only" onclick="window.app.showTab('summary',  this)">📊 월별 정산</div>
       <div class="tab staff-only" onclick="window.app.showTab('attend',   this)">📋 출석 현황</div>
-      <div class="tab"         onclick="window.app.showTab('ranking',  this)">🏆 랭킹</div>
+      <div class="tab admin-only" onclick="window.app.showTab('ranking',  this)">🏆 랭킹</div>
       <div class="tab"         onclick="window.app.showTab('students', this)">👥 학생 관리</div>
       <div class="tab"         onclick="window.app.showTab('notice',   this)">📢 공지사항</div>
     </div>
@@ -317,7 +317,8 @@
           </div>
         </div>
 
-        <button class="btn btn-primary btn-full" onclick="window.records.add()">
+        <div id="record-save-status" role="status" aria-live="polite"></div>
+        <button id="record-save-button" class="btn btn-primary btn-full" onclick="window.records.add()">
           + 마일리지 추가
         </button>
       </div>
@@ -421,7 +422,7 @@
     </div>
 
     <!-- ══ 월별 정산 ══ -->
-    <div class="section" id="tab-summary">
+    <div class="section admin-only" id="tab-summary">
       <div class="stat-grid" id="stat-grid"></div>
 
       <div class="card">
@@ -503,7 +504,7 @@
     </div>
 
     <!-- ══ 랭킹 ══ -->
-    <div class="section" id="tab-ranking">
+    <div class="section admin-only" id="tab-ranking">
       <div class="card">
         <div class="card-title" id="ranking-title">🏆 올해 누적 랭킹</div>
         <div class="month-bar" style="margin-bottom:16px">
@@ -721,13 +722,13 @@
       <button class="bottom-tab active" onclick="window.app.showTab('record', this)" data-tab="record">
         <span class="tab-icon">📝</span>활동 기록
       </button>
-      <button class="bottom-tab" onclick="window.app.showTab('summary', this)" data-tab="summary">
+      <button class="bottom-tab admin-only" onclick="window.app.showTab('summary', this)" data-tab="summary">
         <span class="tab-icon">📊</span>월별 정산
       </button>
       <button class="bottom-tab staff-only" onclick="window.app.showTab('attend', this)" data-tab="attend">
         <span class="tab-icon">📋</span>출석현황
       </button>
-      <button class="bottom-tab" onclick="window.app.showTab('ranking', this)" data-tab="ranking">
+      <button class="bottom-tab admin-only" onclick="window.app.showTab('ranking', this)" data-tab="ranking">
         <span class="tab-icon">🏆</span>랭킹
       </button>
       <button class="bottom-tab" onclick="window.app.showTab('students', this)" data-tab="students">
@@ -739,18 +740,18 @@
     </div>
   </nav>
 
-  <script type="module" src="scripts/firebase.js?v=20260917-1"></script>
-  <script type="module" src="scripts/utils.js?v=20260917-1"></script>
-  <script type="module" src="scripts/auth.js?v=20260917-1"></script>
-  <script type="module" src="scripts/students.js?v=20260917-1"></script>
-  <script type="module" src="scripts/records.js?v=20260917-1"></script>
-  <script type="module" src="scripts/summary.js?v=20260917-1"></script>
-  <script type="module" src="scripts/ranking.js?v=20260917-1"></script>
-  <script type="module" src="scripts/profile.js?v=20260917-1"></script>
-  <script type="module" src="scripts/notice.js?v=20260917-1"></script>
-  <script type="module" src="scripts/newcomer.js?v=20260917-1"></script>
-  <script type="module" src="scripts/attendance.js?v=20260917-1"></script>
-  <script type="module" src="scripts/app.js?v=20260917-1"></script>
+  <script type="module" src="scripts/firebase.js?v=20261107-1"></script>
+  <script type="module" src="scripts/utils.js?v=20261107-1"></script>
+  <script type="module" src="scripts/auth.js?v=20261107-1"></script>
+  <script type="module" src="scripts/students.js?v=20261107-1"></script>
+  <script type="module" src="scripts/records.js?v=20261107-1"></script>
+  <script type="module" src="scripts/summary.js?v=20261107-1"></script>
+  <script type="module" src="scripts/ranking.js?v=20261107-1"></script>
+  <script type="module" src="scripts/profile.js?v=20261107-1"></script>
+  <script type="module" src="scripts/notice.js?v=20261107-1"></script>
+  <script type="module" src="scripts/newcomer.js?v=20261107-1"></script>
+  <script type="module" src="scripts/attendance.js?v=20261107-1"></script>
+  <script type="module" src="scripts/app.js?v=20261107-1"></script>
 
 </body>
 </html>

@@ -1,11 +1,11 @@
-import { kstToday } from "./utils.js?v=20260917-1";
+import { kstToday } from "./utils.js?v=20261107-1";
 /**
  * ranking.js
  * 마일리지 랭킹 — 기본: 전체 누적 / 선택: 월별
  */
 
-import { recordList } from "./records.js?v=20260917-1";
-import { studentList } from "./students.js?v=20260917-1";
+import { recordList } from "./records.js?v=20261107-1";
+import { studentList } from "./students.js?v=20261107-1";
 
 const MEDAL_CLASS = ["top1", "top2", "top3"];
 const MEDAL_ICON = ["🥇", "🥈", "🥉"];
@@ -48,6 +48,7 @@ function updateModeBtn(isMonthly) {
 
 // ── 랭킹 렌더링 ───────────────────────────────────────────
 function render() {
+  if (!window.authState?.isAdmin) return;
   const month = document.getElementById("rank-month").value;
   const filtered = month
     ? recordList.filter((r) => r.date.startsWith(month))

@@ -4,7 +4,7 @@
  * [신규] 반별 학생 필터 입력폼 + 여러 명 한번에 등록 (체크박스)
  */
 
-import { db } from "./firebase.js?v=20260917-1";
+import { db } from "./firebase.js?v=20261107-1";
 import {
   collection,
   doc,
@@ -15,8 +15,8 @@ import {
   runTransaction,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-import { showAlert, validDate, activityId, escapeHTML, csvCell, listenerError } from "./utils.js?v=20260917-1";
-import { studentList } from "./students.js?v=20260917-1";
+import { showAlert, validDate, activityId, escapeHTML, csvCell, listenerError } from "./utils.js?v=20261107-1";
+import { studentList } from "./students.js?v=20261107-1";
 
 const POINTS = {
   "금요기도회 참석": 50,
@@ -204,6 +204,11 @@ function toggleAll(checked) {
 
 // ── 기록 추가 (단일 or 다중) ─────────────────────────────
 let saving = false;
+window.addEventListener('beforeunload', event => {
+  if (!saving) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
 async function add() {
   if (!window.authState?.isAdmin && !window.authState?.isTeacher) return;
   if (saving) return;
@@ -237,6 +242,16 @@ async function add() {
   if (!entries.length) { showAlert('record', '학생을 한 명 이상 선택해주세요', 'error'); return; }
   entries = entries.map(r=>({...r,date,activity,etcName,createdAt:Date.now()}));
   saving = true;
+  const button = document.getElementById('record-save-button');
+  const status = document.getElementById('record-save-status');
+  const originalLabel = button.textContent;
+  const controls = [...document.querySelectorAll('.record-input-card input, .record-input-card select, .record-input-card button')];
+  const wasDisabled = controls.map(el => el.disabled);
+  controls.forEach(el => el.disabled = true);
+  button.textContent = '저장 중…';
+  button.setAttribute('aria-busy', 'true');
+  status.className = 'save-status pending';
+  status.textContent = entries.length + '건을 저장하고 있어요. 다시 누르지 않아도 됩니다.';
   try {
     const count = await runTransaction(db, async tx => {
       // Deterministic IDs prevent duplicate writes across tabs; legacy records are also checked.
@@ -254,10 +269,20 @@ async function add() {
       });
       return count;
     });
+    status.className = 'save-status success';
+    status.textContent = count + '건 저장 완료' + (entries.length > count ? ' · 기존 기록은 중복 적립하지 않았습니다.' : '');
     showAlert('record', count + '건 적립 완료! 이미 등록된 활동은 중복 적립하지 않았습니다.', 'success');
     document.querySelectorAll('#tab-record input[type="checkbox"]').forEach(cb=>cb.checked=false);
-  } catch(e) { showAlert('record', '저장 실패: ' + e.message, 'error'); }
-  finally { saving = false; }
+  } catch(e) {
+    status.className = 'save-status error';
+    status.textContent = '저장하지 못했습니다. 입력은 유지되어 있으니 연결 확인 후 다시 눌러주세요.';
+    showAlert('record', '저장 실패: ' + e.message, 'error');
+  } finally {
+    saving = false;
+    controls.forEach((el, i) => el.disabled = wasDisabled[i]);
+    button.textContent = originalLabel;
+    button.removeAttribute('aria-busy');
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -266,6 +291,7 @@ async function add() {
 
 async function remove(id) {
   if (!window.authState?.isAdmin) return;
+  if (saving) { alert('등록을 저장 중입니다. 완료 후 삭제해주세요.'); return; }
   if (!confirm("이 기록을 삭제할까요?")) return;
   try {
     await deleteDoc(doc(db, "records", id));

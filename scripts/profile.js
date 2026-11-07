@@ -1,12 +1,12 @@
-import { kstToday } from "./utils.js?v=20260917-1";
+import { kstToday } from "./utils.js?v=20261107-1";
 /**
  * profile.js
  * 학생 프로필 모달 — 월별 추이 그래프 + 활동 이력
  */
 
-import { recordList } from "./records.js?v=20260917-1";
-import { studentList } from "./students.js?v=20260917-1";
-import { escapeHTML, attendanceRecords } from "./utils.js?v=20260917-1";
+import { recordList } from "./records.js?v=20261107-1";
+import { studentList } from "./students.js?v=20261107-1";
+import { escapeHTML, attendanceRecords } from "./utils.js?v=20261107-1";
 
 const ACTIVITY_COLOR = {
   "주일예배 출석": "#7C3AED",
@@ -159,6 +159,14 @@ function open(name) {
     </div>
   `;
 
+  if (!window.authState?.isAdmin) {
+    const modal = document.getElementById('profile-modal');
+    modal.querySelectorAll('.profile-activity-bars, .profile-chart-wrap').forEach(el => {
+      if (el.previousElementSibling?.classList.contains('profile-section-title')) el.previousElementSibling.remove();
+      el.remove();
+    });
+    modal.querySelector('.profile-total')?.remove();
+  }
   document.getElementById("profile-modal").classList.add("show");
 }
 

@@ -9,15 +9,15 @@
  *   recordDate   (새친구 — 활동기록 날짜, "YYYY-MM-DD")
  */
 
-import { db } from "./firebase.js?v=20260917-1";
+import { db } from "./firebase.js?v=20261107-1";
 import {
   collection, addDoc, deleteDoc, doc,
   onSnapshot, orderBy, query, serverTimestamp,
   setDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { showAlert, escapeHTML, validName, validDate, toLocalDate, listenerError } from "./utils.js?v=20260917-1";
-import { recordList } from "./records.js?v=20260917-1";
-import { studentList } from "./students.js?v=20260917-1";
+import { showAlert, escapeHTML, validName, validDate, toLocalDate, listenerError } from "./utils.js?v=20261107-1";
+import { recordList } from "./records.js?v=20261107-1";
+import { studentList } from "./students.js?v=20261107-1";
 
 let noticeList = null;
 let newcomerPage = 1;

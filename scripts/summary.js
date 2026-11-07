@@ -1,11 +1,11 @@
-import { kstToday } from "./utils.js?v=20260917-1";
+import { kstToday } from "./utils.js?v=20261107-1";
 /**
  * summary.js
  * 월별 마일리지 정산 — 합계만 노출, 클릭 시 항목 + 출석횟수 펼침
  */
 
-import { recordList } from "./records.js?v=20260917-1";
-import { studentList, getStudent } from "./students.js?v=20260917-1";
+import { recordList } from "./records.js?v=20261107-1";
+import { studentList, getStudent } from "./students.js?v=20261107-1";
 
 const ACTIVITY_KEYS = [
   { key: "attend", label: "주일출석" },
@@ -28,6 +28,7 @@ function setThisMonth() {
 }
 
 function render() {
+  if (!window.authState?.isAdmin) return;
   const month    = document.getElementById("sel-month").value;
   const fTeacher = document.getElementById("sum-filter-teacher").value;
   const fGrade   = document.getElementById("sum-filter-grade").value;

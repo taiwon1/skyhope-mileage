@@ -52,7 +52,7 @@ function writer() {
 }
 export const writeBatch = () => writer();
 export function runTransaction(_, fn) {
-  const pending = queue.then(async () => { const tx = writer(); const result = await fn(tx); await tx.commit(); return result; });
+  const pending = queue.then(async () => { if(window.__transactionGate) await window.__transactionGate; const tx = writer(); const result = await fn(tx); await tx.commit(); return result; });
   queue = pending.catch(() => {}); return pending;
 }
 window.__db = { state, emit, replace: (name, values) => { state[name] = structuredClone(values); emit(); }, failListener: name => listeners.filter(l=>l.ref.name===name).forEach(l=>l.error?.(Error('테스트 읽기 실패'))) };
